@@ -1,0 +1,23 @@
+{
+    "name": "frogeyedman/laravel-translations-import",
+    "description": "Import translations from your Laravel translation files to your database.",
+    "license": "mit",
+    "authors": [
+        {
+            "name": "Bodhi Looij",
+            "email": "bodhilooij1998@gmail.com"
+        }
+    ],
+    "keywords": [
+        "translations",
+        "import",
+        "laravel"
+    ],
+    "autoload": {
+        "psr-4": {
+            "App\\" : "app/",
+            "Frogeyedman\\LaravelTranslationsImport\\": "src/",
+            "Frogeyedman\\LaravelTranslationsImport\\Console\\Command": "src/Console/Command"
+        }
+    }
+}
