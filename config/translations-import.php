@@ -5,5 +5,4 @@ return [
     'group' => 'group',
     'key' => 'key',
     'translations' => 'text'
-
 ];

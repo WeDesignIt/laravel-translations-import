@@ -20,7 +20,7 @@ class TranslationsImport extends Command
      */
     protected $description = 'Import translations from the resources/lang folder.';
 
-    /**
+    /*
      * Create a new command instance.
      *
      * @return void
@@ -37,6 +37,11 @@ class TranslationsImport extends Command
      */
     public function handle()
     {
+        $table = config('translations-import.table');
+        $group = config('translations-import.group');
+        $key = config('translations-import.key');
+        $text = config('translations-import.text');
+
 
     }
 }
