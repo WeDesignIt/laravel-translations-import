@@ -29,5 +29,7 @@ class TranslationsImportServiceProvider extends ServiceProvider
                 TranslationsImport::class
             ]);
         }
+
+        $this->publishes([__DIR__.'/../config/translations-import.php' => config_path('translations-import.php')], 'config');
     }
 }
