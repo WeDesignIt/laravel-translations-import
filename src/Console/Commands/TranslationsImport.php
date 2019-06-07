@@ -76,12 +76,14 @@ class TranslationsImport extends Command
      */
     public function createNewTranslation($group, $key, $locale, $translation)
     {
-        DB::table(config('translations-import.table'))
-          ->insert([
-              config('translations-import.group')        => $group,
-              config('translations-import.key')          => $key,
-              config('translations-import.translations') => json_encode([$locale => $translation]),
-          ]);
+        if (!empty($translation)) {
+            DB::table(config('translations-import.table'))
+              ->insert([
+                  config('translations-import.group')        => $group,
+                  config('translations-import.key')          => $key,
+                  config('translations-import.translations') => json_encode([$locale => $translation]),
+              ]);
+        }
         $this->createCounter++;
     }
 
@@ -116,7 +118,7 @@ class TranslationsImport extends Command
 
         $translations = json_decode($existingTranslation->$translationColumn, true);
 
-        if ( ! array_key_exists($locale, $translations)) {
+        if ( ! array_key_exists($locale, $translations) &&  !empty($translation)) {
             $translations[$locale] = $translation;
 
             DB::table(config('translations-import.table'))
