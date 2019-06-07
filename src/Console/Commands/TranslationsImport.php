@@ -15,7 +15,7 @@ class TranslationsImport extends Command
      *
      * @var string
      */
-    protected $signature = 'translations:import {--ignore-languages=*}';
+    protected $signature = 'translations:import {--ignore-locales= : Locales that should be ignored during the importing process, ex: --ignore-locales=fr,de }';
 
     /**
      * The console command description.
@@ -23,6 +23,20 @@ class TranslationsImport extends Command
      * @var string
      */
     protected $description = 'Import translations from the resources/lang folder.';
+
+    /**
+     * To track the total updates
+     *
+     * @var int
+     */
+    protected $updateCounter = 0;
+
+    /**
+     * To track the total creates
+     *
+     * @var int
+     */
+    protected $createCounter = 0;
 
     /*
      * Create a new command instance.
@@ -66,6 +80,7 @@ class TranslationsImport extends Command
               config('translations-import.key') => $key,
               config('translations-import.translations') => json_encode([$locale => $translation]),
           ]);
+        $this->createCounter++;
     }
 
     /**
@@ -101,19 +116,21 @@ class TranslationsImport extends Command
 
         if (!array_key_exists($locale, $translations)) {
             $translations[$locale] = $translation;
+
+            DB::table(config('translations-import.table'))
+              ->where(config('translations-import.key'), $key)
+              ->where(config('translations-import.group'), $group)
+              ->update([
+                  config('translations-import.translations') => json_encode($translations),
+              ]);
+            $this->updateCounter++;
         }
 
-        DB::table(config('translations-import.table'))
-          ->where(config('translations-import.key'), $key)
-          ->where(config('translations-import.group'), $group)
-          ->update([
-              config('translations-import.translations') => json_encode($translations),
-          ]);
     }
 
     public function localeCanBeImported($locale)
     {
-        return !in_array($locale, $this->option('ignore-languages'));
+        return !in_array($locale, explode(',', $this->option('ignore-locales')));
     }
 
     public function handle()
@@ -146,5 +163,7 @@ class TranslationsImport extends Command
                 }
             }
         }
+
+        $this->info("A total of {$this->createCounter} translations have been created and {$this->updateCounter} translations have been updated");
     }
 }
