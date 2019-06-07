@@ -1,6 +1,6 @@
 <?php
 
-namespace Wedesignit\LaravelTranslationsImport\Console\Commands;
+namespace WeDesignIt\LaravelTranslationsImport\Console\Commands;
 
 use Wedesignit\LaravelTranslationsImport\Helpers\LangDirectory;
 use Illuminate\Console\Command;
