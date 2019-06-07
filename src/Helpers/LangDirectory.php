@@ -1,6 +1,6 @@
 <?php
 
-namespace Wedesignit\LaravelTranslationsImport\Helpers;
+namespace WeDesignIt\LaravelTranslationsImport\Helpers;
 
 class LangDirectory
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Wedesignit\LaravelTranslationsImport;
+namespace WeDesignIt\LaravelTranslationsImport;
 
 use Wedesignit\LaravelTranslationsImport\Console\Commands\TranslationsImport;
 use Illuminate\Support\ServiceProvider;
