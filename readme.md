@@ -1,5 +1,12 @@
 # Import your language files to the database
 
+This package provides you with a command to import the translation files to your database.
+It's particularly useful in the case you're using a package like Spatie's 
+[Laravel Translatable](https://github.com/spatie/laravel-translatable). 
+In this case the lang files can be used as 'defaults' to import into a project.
+When you want to add new defaults, just add them to your lang file(s), rerun the 
+import command and the newly added translations will be added for usage, without 
+the existing translations being modified.
 
 ## Basic usage
 
@@ -19,16 +26,16 @@ php artisan translations:import --ignore-groups=routes,defaults --ignore-locales
 You can install the package via composer:
 
 ``` bash
-composer require wedesingit/laravel-translation-import
+composer require wedesignit/laravel-translation-import
 ```
 
 Optionally you could publish the config file to change table and column names.
 
 ```bash
-php artisan vendor:publish --provider="Wedesignit\LaravelTranslationsImport\TranslationsImportServiceProvider" --tag="config"
+php artisan vendor:publish --provider="WeDesignIt\LaravelTranslationsImport\TranslationsImportServiceProvider" --tag="config"
 ```
 
-This is the contents of the published config file:
+This is the content of the published config file:
 ```php
 <?php
 
