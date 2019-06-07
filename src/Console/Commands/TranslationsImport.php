@@ -1,8 +1,8 @@
 <?php
 
-namespace Frogeyedman\LaravelTranslationsImport\Console\Commands;
+namespace Wedesignit\LaravelTranslationsImport\Console\Commands;
 
-use Frogeyedman\LaravelTranslationsImport\Helpers\LangDirectory;
+use Wedesignit\LaravelTranslationsImport\Helpers\LangDirectory;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +15,9 @@ class TranslationsImport extends Command
      *
      * @var string
      */
-    protected $signature = 'translations:import {--ignore-locales= : Locales that should be ignored during the importing process, ex: --ignore-locales=fr,de }';
+    protected $signature = 'translations:import 
+        {--ignore-locales= : Locales that should be ignored during the importing process, ex: --ignore-locales=fr,de }
+        {--ignore-groups=  : Groups that should not be imported, ex: --ignore-groups=routes,admin/non-editable-stuff }';
 
     /**
      * The console command description.
@@ -76,8 +78,8 @@ class TranslationsImport extends Command
     {
         DB::table(config('translations-import.table'))
           ->insert([
-              config('translations-import.group') => $group,
-              config('translations-import.key') => $key,
+              config('translations-import.group')        => $group,
+              config('translations-import.key')          => $key,
               config('translations-import.translations') => json_encode([$locale => $translation]),
           ]);
         $this->createCounter++;
@@ -114,7 +116,7 @@ class TranslationsImport extends Command
 
         $translations = json_decode($existingTranslation->$translationColumn, true);
 
-        if (!array_key_exists($locale, $translations)) {
+        if ( ! array_key_exists($locale, $translations)) {
             $translations[$locale] = $translation;
 
             DB::table(config('translations-import.table'))
@@ -130,7 +132,12 @@ class TranslationsImport extends Command
 
     public function localeCanBeImported($locale)
     {
-        return !in_array($locale, explode(',', $this->option('ignore-locales')));
+        return ! in_array($locale, explode(',', $this->option('ignore-locales')));
+    }
+
+    public function groupCanBeImported($group)
+    {
+        return ! in_array($group, explode(',', $this->option('ignore-groups')));
     }
 
     public function handle()
@@ -139,28 +146,32 @@ class TranslationsImport extends Command
 
         foreach ($languageGroupsByLocale as $group => $locales) {
 
-            foreach ($locales as $locale) {
+            // only proceed if the group should be imported.
+            if ($this->groupCanBeImported($group)) {
+                foreach ($locales as $locale) {
 
-                if ($this->localeCanBeImported($locale)) {
-                    $this->line("Importing group: {$group} for locale: {$locale}");
-                    // we only have the translation group, so we will get all the translations for the current locale.
-                    $translationsForGivenGroupAndLocale = Lang::get($group, [], $locale);
+                    if ($this->localeCanBeImported($locale)) {
+                        $this->line("Importing group: {$group} for locale: {$locale}");
+                        // we only have the translation group, so we will get all the translations for the current locale.
+                        $translationsForGivenGroupAndLocale = Lang::get($group, [], $locale);
 
-                    // dot the array so we can get the keys the easy way
-                    $dottedTranslationsForGivenGroupAndLocale = Arr::dot($translationsForGivenGroupAndLocale);
+                        // dot the array so we can get the keys the easy way
+                        $dottedTranslationsForGivenGroupAndLocale = Arr::dot($translationsForGivenGroupAndLocale);
 
-                    foreach ($dottedTranslationsForGivenGroupAndLocale as $key => $translation) {
-
-                        // here we will check if the given group + key exists.
-                        if ($this->translationExists($group, $key)) {
-                            $this->updateExistingTranslationRow($group, $key, $locale, $translation);
-                        } else {
-                            $this->createNewTranslation($group, $key, $locale, $translation);
+                        foreach ($dottedTranslationsForGivenGroupAndLocale as $key => $translation) {
+                            // here we will check if the given group + key exists.
+                            if ($this->translationExists($group, $key)) {
+                                $this->updateExistingTranslationRow($group, $key, $locale, $translation);
+                            } else {
+                                $this->createNewTranslation($group, $key, $locale, $translation);
+                            }
                         }
+                    } else {
+                        $this->info("Skipping locale: {$locale}");
                     }
-                } else {
-                    $this->line("Skipping locale: {$locale}");
                 }
+            } else {
+                $this->info("Skipping group: {$group}");
             }
         }
 

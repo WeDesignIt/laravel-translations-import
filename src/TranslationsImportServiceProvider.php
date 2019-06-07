@@ -1,8 +1,8 @@
 <?php
 
-namespace Frogeyedman\LaravelTranslationsImport;
+namespace Wedesignit\LaravelTranslationsImport;
 
-use Frogeyedman\LaravelTranslationsImport\Console\Commands\TranslationsImport;
+use Wedesignit\LaravelTranslationsImport\Console\Commands\TranslationsImport;
 use Illuminate\Support\ServiceProvider;
 
 class TranslationsImportServiceProvider extends ServiceProvider

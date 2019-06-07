@@ -1,11 +1,16 @@
 {
-    "name": "frogeyedman/laravel-translations-import",
+    "name": "wedesignit/laravel-translations-import",
     "description": "Import translations from your Laravel translation files to your database.",
-    "license": "mit",
+    "license": "MIT",
+    "type": "library",
     "authors": [
         {
             "name": "Bodhi Looij",
             "email": "bodhilooij1998@gmail.com"
+        },
+        {
+            "name": "Patrick van Kouteren",
+            "email": "info@wedesignit.nl"
         }
     ],
     "keywords": [
@@ -16,8 +21,15 @@
     "autoload": {
         "psr-4": {
             "App\\" : "app/",
-            "Frogeyedman\\LaravelTranslationsImport\\": "src/",
-            "Frogeyedman\\LaravelTranslationsImport\\Console\\Command": "src/Console/Command"
+            "Wedesignit\\LaravelTranslationsImport\\": "src/",
+            "Wedesignit\\LaravelTranslationsImport\\Console\\Command": "src/Console/Command"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "WeDesignIt\\LaravelBolOpenApi\\BolOpenApiServiceProvider"
+            ]
         }
     }
 }
