@@ -2,7 +2,7 @@
 
 namespace WeDesignIt\LaravelTranslationsImport\Console\Commands;
 
-use Wedesignit\LaravelTranslationsImport\Helpers\LangDirectory;
+use WeDesignIt\LaravelTranslationsImport\Helpers\LangDirectory;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;

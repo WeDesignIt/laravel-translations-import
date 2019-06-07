@@ -2,7 +2,7 @@
 
 namespace WeDesignIt\LaravelTranslationsImport;
 
-use Wedesignit\LaravelTranslationsImport\Console\Commands\TranslationsImport;
+use WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsImport;
 use Illuminate\Support\ServiceProvider;
 
 class TranslationsImportServiceProvider extends ServiceProvider
