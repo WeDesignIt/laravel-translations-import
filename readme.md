@@ -2,12 +2,17 @@
 
 
 ## Basic usage
+
+This command will import all translation files located in the resources/lang folder.
 ```
 php artisan translations:import
 ```
 
-The command will import all existing translations located in the resources/lang folder.
+Its also possible to ignore certain groups or locales
 
+```bash
+php artisan translations:import --ignore-groups=routes,defaults --ignore-locales=en,fr
+```
 
 ## Installation
 
@@ -19,7 +24,7 @@ composer require wedesingit/laravel-translation-import
 
 Optionally you could publish the config file to change table and column names.
 
-```
+```bash
 php artisan vendor:publish --provider="Wedesignit\LaravelTranslationsImport\TranslationsImportServiceProvider" --tag="config"
 ```
 
