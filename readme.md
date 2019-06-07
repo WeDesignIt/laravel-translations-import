@@ -16,7 +16,7 @@ php artisan translations:import --ignore-groups=routes,defaults --ignore-locales
 
 ## Installation
 
-You can install the package via composer:
+You can install the package via composer: 
 
 ``` bash
 composer require wedesingit/laravel-translation-import
