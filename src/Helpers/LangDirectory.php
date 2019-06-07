@@ -4,6 +4,34 @@ namespace Frogeyedman\LaravelTranslationsImport\Helpers;
 
 class LangDirectory {
 
+
+    public static function translatableFiles()
+    {
+        $directory = resource_path('lang');
+
+        $recursiveIteratorIterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        $translatableFileNames = [];
+
+        /** @var \RecursiveIteratorIterator $fileInfo */
+        foreach ($recursiveIteratorIterator as $fileInfo) {
+
+            $pathInfo = explode('/', $fileInfo->getRealPath());
+            $locale = $pathInfo[4];
+
+            // everything after the fifth key is either the translatable file or folder and translatable file
+            $translatableFileName = implode(array_splice($pathInfo, 5), '/');
+            // set it in the array
+
+            $translatableFileNames[$locale][] = $translatableFileName;
+
+        }
+
+        dd($translatableFileNames);
+    }
+
     public static function directoryTree()
     {
         $directory = resource_path('lang');
