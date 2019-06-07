@@ -2,10 +2,16 @@
 
 namespace Frogeyedman\LaravelTranslationsImport\Helpers;
 
-class LangDirectory {
+class LangDirectory
+{
 
 
-    public static function translatableFiles()
+    /**
+     * Get the language groups available in the application
+     *
+     * @return array
+     */
+    public static function getLanguageGroupsWithLocale(): array
     {
         $directory = resource_path('lang');
 
@@ -18,18 +24,22 @@ class LangDirectory {
         /** @var \RecursiveIteratorIterator $fileInfo */
         foreach ($recursiveIteratorIterator as $fileInfo) {
 
+            // get the total path from the file
             $pathInfo = explode('/', $fileInfo->getRealPath());
-            $locale = $pathInfo[4];
+            $locale   = $pathInfo[4];
 
             // everything after the fifth key is either the translatable file or folder and translatable file
-            $translatableFileName = implode(array_splice($pathInfo, 5), '/');
-            // set it in the array
+            $translationGroup = array_splice($pathInfo, 5);
 
-            $translatableFileNames[$locale][] = $translatableFileName;
+            // implode it and remove the file extension so we get the full filename
+            $translatableFileName = str_replace('.php', '', implode($translationGroup, '/'));
+
+            // set it in the array
+            $translatableFileNames[$translatableFileName][] = $locale;
 
         }
 
-        dd($translatableFileNames);
+        return $translatableFileNames;
     }
 
     public static function directoryTree()
@@ -50,7 +60,7 @@ class LangDirectory {
 
             for ($dirDepth = $recursiveIteratorIterator->getDepth() - 1; $dirDepth >= 0; $dirDepth--) {
                 $parentFolder = $recursiveIteratorIterator->getSubIterator($dirDepth)->current()->getFilename();
-                $path = [
+                $path         = [
                     $parentFolder => $path
                 ];
             }
