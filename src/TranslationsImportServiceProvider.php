@@ -14,9 +14,8 @@ class TranslationsImportServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
-    }
 
+    }
     /**
      * Bootstrap services.
      *
@@ -29,6 +28,8 @@ class TranslationsImportServiceProvider extends ServiceProvider
                 TranslationsImport::class
             ]);
         }
+
+        $this->mergeConfigFrom(__DIR__.'/../config/translations-import.php', 'translations-import');
 
         $this->publishes([__DIR__.'/../config/translations-import.php' => config_path('translations-import.php')], 'config');
     }
