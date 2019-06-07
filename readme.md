@@ -21,7 +21,7 @@ You can install the package via composer:
 ``` bash
 composer require wedesingit/laravel-translation-import
 ```
-d
+
 Optionally you could publish the config file to change table and column names.
 
 ```bash
