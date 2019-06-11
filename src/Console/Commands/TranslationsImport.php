@@ -83,8 +83,8 @@ class TranslationsImport extends Command
                   config('translations-import.key')          => $key,
                   config('translations-import.translations') => json_encode([$locale => $translation]),
               ]);
+            $this->createCounter++;
         }
-        $this->createCounter++;
     }
 
     /**
