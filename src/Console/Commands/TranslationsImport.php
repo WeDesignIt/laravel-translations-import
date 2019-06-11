@@ -1,8 +1,8 @@
 <?php
 
-namespace Wedesignit\LaravelTranslationsImport\Console\Commands;
+namespace WeDesignIt\LaravelTranslationsImport\Console\Commands;
 
-use Wedesignit\LaravelTranslationsImport\Helpers\LangDirectory;
+use WeDesignIt\LaravelTranslationsImport\Helpers\LangDirectory;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -76,13 +76,15 @@ class TranslationsImport extends Command
      */
     public function createNewTranslation($group, $key, $locale, $translation)
     {
-        DB::table(config('translations-import.table'))
-          ->insert([
-              config('translations-import.group')        => $group,
-              config('translations-import.key')          => $key,
-              config('translations-import.translations') => json_encode([$locale => $translation]),
-          ]);
-        $this->createCounter++;
+        if (!empty($translation)) {
+            DB::table(config('translations-import.table'))
+              ->insert([
+                  config('translations-import.group')        => $group,
+                  config('translations-import.key')          => $key,
+                  config('translations-import.translations') => json_encode([$locale => $translation]),
+              ]);
+            $this->createCounter++;
+        }
     }
 
     /**
@@ -116,7 +118,7 @@ class TranslationsImport extends Command
 
         $translations = json_decode($existingTranslation->$translationColumn, true);
 
-        if ( ! array_key_exists($locale, $translations)) {
+        if ( ! array_key_exists($locale, $translations) &&  !empty($translation)) {
             $translations[$locale] = $translation;
 
             DB::table(config('translations-import.table'))
