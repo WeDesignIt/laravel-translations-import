@@ -22,12 +22,9 @@ class LangDirectory
         /** @var \RecursiveIteratorIterator $fileInfo */
         foreach ($recursiveIteratorIterator as $fileInfo) {
 
-            // get the total path from the file
-            $pathInfo = explode('/', $fileInfo->getRealPath());
-            $locale   = $pathInfo[4];
-
-            // everything after the fifth key is either the translatable file or folder and translatable file
-            $translationGroup = array_splice($pathInfo, 5);
+            $relativeFile = str_replace($directory .'/', "", $fileInfo->getRealPath());
+            $translationGroup = explode("/", $relativeFile);
+            $locale = array_shift($translationGroup);
 
             // implode it and remove the file extension so we get the full filename
             $translatableFileName = str_replace('.php', '', implode($translationGroup, '/'));
