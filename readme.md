@@ -2,7 +2,7 @@
 
 This package provides you with a command to import the translation files to your database.
 It's particularly useful in the case you're using a package like Spatie's 
-[Laravel Translatable](https://github.com/spatie/laravel-translatable). 
+[Laravel Translation Loader](https://github.com/spatie/laravel-translation-loader). 
 In this case the lang files can be used as 'defaults' to import into a project.
 When you want to add new defaults, just add them to your lang file(s), rerun the 
 import command and the newly added translations will be added for usage, without 
