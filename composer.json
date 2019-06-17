@@ -21,6 +21,9 @@
     "require": {
         "php": "^7.0"
     },
+    "suggest": {
+        "spatie/laravel-translation-loader": "Retrieve translations seemless from the database or language file"
+    },
     "autoload": {
         "psr-4": {
             "WeDesignIt\\LaravelTranslationsImport\\": "src/"
