@@ -16,8 +16,9 @@ class TranslationsImport extends Command
      * @var string
      */
     protected $signature = 'translations:import 
-        {--ignore-locales= : Locales that should be ignored during the importing process, ex: --ignore-locales=fr,de }
-        {--ignore-groups=  : Groups that should not be imported, ex: --ignore-groups=routes,admin/non-editable-stuff }';
+        {--ignore-locales=                  : Locales that should be ignored during the importing process, ex: --ignore-locales=fr,de }
+        {--ignore-groups=                   : Groups that should not be imported, ex: --ignore-groups=routes,admin/non-editable-stuff }
+        {--overwrite-existing-translations}';
 
     /**
      * The console command description.
@@ -39,6 +40,13 @@ class TranslationsImport extends Command
      * @var int
      */
     protected $createCounter = 0;
+
+    /**
+     * To determine if the existing translations should be overwritten
+     *
+     * @var bool
+     */
+    protected $shouldOverWriteExistingTranslations = false;
 
     /*
      * Create a new command instance.
@@ -118,7 +126,8 @@ class TranslationsImport extends Command
 
         $translations = json_decode($existingTranslation->$translationColumn, true);
 
-        if ( ! array_key_exists($locale, $translations) &&  !empty($translation)) {
+        // check if the locale exists in the current translation
+        if (array_key_exists($locale, $translations)) {
             $translations[$locale] = $translation;
 
             DB::table(config('translations-import.table'))
@@ -131,6 +140,7 @@ class TranslationsImport extends Command
         }
 
     }
+
 
     public function localeCanBeImported($locale)
     {
@@ -145,6 +155,12 @@ class TranslationsImport extends Command
     public function handle()
     {
         $languageGroupsByLocale = LangDirectory::getLanguageGroupsWithLocale();
+
+        if ($this->option('overwrite-existing-translations')) {
+            if ($this->confirm('Are you really sure you want to overwrite all translations in the database ? This action cannot be undone.')) {
+                $this->shouldOverWriteExistingTranslations = true;
+            }
+        }
 
         foreach ($languageGroupsByLocale as $group => $locales) {
 
@@ -161,9 +177,12 @@ class TranslationsImport extends Command
                         $dottedTranslationsForGivenGroupAndLocale = Arr::dot($translationsForGivenGroupAndLocale);
 
                         foreach ($dottedTranslationsForGivenGroupAndLocale as $key => $translation) {
-                            // here we will check if the given group + key exists.
+                            // here we will check if the given group + key exists
                             if ($this->translationExists($group, $key)) {
-                                $this->updateExistingTranslationRow($group, $key, $locale, $translation);
+                                // check we can overwrite the existing translations.
+                                if ($this->shouldOverWriteExistingTranslations) {
+                                    $this->updateExistingTranslationRow($group, $key, $locale, $translation);
+                                }
                             } else {
                                 $this->createNewTranslation($group, $key, $locale, $translation);
                             }
