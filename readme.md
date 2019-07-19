@@ -21,12 +21,17 @@ Its also possible to ignore certain groups or locales
 php artisan translations:import --ignore-groups=routes,defaults --ignore-locales=en,fr
 ```
 
+While it's turned of by default, we offer a way of overwriting all the existing translations
+```bash
+php artisan translations:import --overwrite-existing-translations
+```
+
 ## Installation
 
 You can install the package via composer: 
 
 ``` bash
-composer require wedesignit/laravel-translation-import
+composer require wedesignit/laravel-translations-import
 ```
 
 Optionally you could publish the config file to change table and column names.
