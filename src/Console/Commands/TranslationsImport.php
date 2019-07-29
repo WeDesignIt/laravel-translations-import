@@ -42,6 +42,13 @@ class TranslationsImport extends Command
     protected $createCounter = 0;
 
     /**
+     * Track the total overwrites
+     *
+     * @var int
+     */
+    protected $overwriteCounter = 0;
+
+    /**
      * To determine if the existing translations should be overwritten
      *
      * @var bool
@@ -111,7 +118,7 @@ class TranslationsImport extends Command
     }
 
     /**
-     * Update existing translation row
+     * Update an existing translation row.
      *
      * @param $group
      * @param $key
@@ -126,19 +133,44 @@ class TranslationsImport extends Command
 
         $translations = json_decode($existingTranslation->$translationColumn, true);
 
-        // check if the locale exists in the current translation
-        if (array_key_exists($locale, $translations)) {
+
+        // check if a translation should be overwritten.
+        // else if the locale does not exist in the current translation, then we will update it and add it to the translation.
+        if ($this->shouldOverWriteExistingTranslations) {
+
+            // update the translation for the locale in the array.
             $translations[$locale] = $translation;
 
-            DB::table(config('translations-import.table'))
-              ->where(config('translations-import.key'), $key)
-              ->where(config('translations-import.group'), $group)
-              ->update([
-                  config('translations-import.translations') => json_encode($translations),
-              ]);
+            $this->updateTranslation($group, $key, $translations);
+
+            $this->overwriteCounter++;
+        } else if (!array_key_exists($locale, $translations)) {
+
+            // update the translation for the locale in the array.
+            $translations[$locale] = $translation;
+
+            $this->updateTranslation($group, $key, $translations);
+
             $this->updateCounter++;
         }
 
+    }
+
+    /**
+     * Update a existing translation
+     *
+     * @param $group
+     * @param $key
+     * @param $translations
+     */
+    public function updateTranslation($group, $key, $translations)
+    {
+        DB::table(config('translations-import.table'))
+          ->where(config('translations-import.key'), $key)
+          ->where(config('translations-import.group'), $group)
+          ->update([
+              config('translations-import.translations') => json_encode($translations),
+          ]);
     }
 
 
@@ -180,9 +212,7 @@ class TranslationsImport extends Command
                             // here we will check if the given group + key exists
                             if ($this->translationExists($group, $key)) {
                                 // check we can overwrite the existing translations.
-                                if ($this->shouldOverWriteExistingTranslations) {
-                                    $this->updateExistingTranslationRow($group, $key, $locale, $translation);
-                                }
+                                $this->updateExistingTranslationRow($group, $key, $locale, $translation);
                             } else {
                                 $this->createNewTranslation($group, $key, $locale, $translation);
                             }
@@ -196,6 +226,11 @@ class TranslationsImport extends Command
             }
         }
 
-        $this->info("A total of {$this->createCounter} translations have been created and {$this->updateCounter} translations have been updated");
+        if ($this->shouldOverWriteExistingTranslations) {
+            $this->info("A total of {$this->overwriteCounter} translations have been overwritten");
+        } else {
+            $this->info("A total of {$this->createCounter} translations have been created and {$this->updateCounter} translations have been updated");
+        }
+
     }
 }
