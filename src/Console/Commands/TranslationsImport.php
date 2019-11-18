@@ -175,7 +175,6 @@ class TranslationsImport extends Command
           ]);
     }
 
-
     public function localeCanBeImported($locale)
     {
         return ! in_array($locale, explode(',', $this->option('ignore-locales')));
@@ -187,11 +186,11 @@ class TranslationsImport extends Command
         $groupsToImport = explode(',', $this->option('only-groups'));
         $groupsToIgnore = explode(',', $this->option('ignore-groups'));
 
-        if (!empty($groupsToImport) && in_array($group, $groupsToImport)) {
+        if (!is_null($this->option('only-groups')) && in_array($group, $groupsToImport)) {
             return true;
         }
 
-        if (empty($groupsToImport) && !in_array($group, $groupsToIgnore)) {
+        if (!is_null($this->option('ignore-groups')) && !in_array($group, $groupsToIgnore)) {
             return true;
         }
 
