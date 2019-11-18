@@ -16,6 +16,8 @@ class TranslationsImport extends Command
      * @var string
      */
     protected $signature = 'translations:import 
+   
+        {--only-groups=                     : Only import given groups, ex: admin/employer,frontend/general/setting}
         {--ignore-locales=                  : Locales that should be ignored during the importing process, ex: --ignore-locales=fr,de }
         {--ignore-groups=                   : Groups that should not be imported, ex: --ignore-groups=routes,admin/non-editable-stuff }
         {--overwrite-existing-translations}';
@@ -173,7 +175,6 @@ class TranslationsImport extends Command
           ]);
     }
 
-
     public function localeCanBeImported($locale)
     {
         return ! in_array($locale, explode(',', $this->option('ignore-locales')));
@@ -181,7 +182,19 @@ class TranslationsImport extends Command
 
     public function groupCanBeImported($group)
     {
-        return ! in_array($group, explode(',', $this->option('ignore-groups')));
+
+        $groupsToImport = explode(',', $this->option('only-groups'));
+        $groupsToIgnore = explode(',', $this->option('ignore-groups'));
+
+        if (!is_null($this->option('only-groups')) && !in_array($group, $groupsToImport)) {
+            return false;
+        }
+
+        if (!is_null($this->option('ignore-groups')) && in_array($group, $groupsToIgnore)) {
+            return false;
+        }
+
+        return true;
     }
 
     public function handle()
@@ -193,6 +206,7 @@ class TranslationsImport extends Command
                 $this->shouldOverWriteExistingTranslations = true;
             }
         }
+
 
         foreach ($languageGroupsByLocale as $group => $locales) {
 
