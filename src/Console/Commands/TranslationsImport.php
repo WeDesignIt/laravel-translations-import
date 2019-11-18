@@ -186,15 +186,15 @@ class TranslationsImport extends Command
         $groupsToImport = explode(',', $this->option('only-groups'));
         $groupsToIgnore = explode(',', $this->option('ignore-groups'));
 
-        if (!is_null($this->option('only-groups')) && in_array($group, $groupsToImport)) {
-            return true;
+        if (!is_null($this->option('only-groups')) && !in_array($group, $groupsToImport)) {
+            return false;
         }
 
-        if (!is_null($this->option('ignore-groups')) && !in_array($group, $groupsToIgnore)) {
-            return true;
+        if (!is_null($this->option('ignore-groups')) && in_array($group, $groupsToIgnore)) {
+            return false;
         }
 
-        return false;
+        return true;
     }
 
     public function handle()
