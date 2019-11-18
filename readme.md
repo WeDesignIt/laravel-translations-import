@@ -15,6 +15,11 @@ This command will import all translation files located in the resources/lang fol
 php artisan translations:import
 ```
 
+There is a way to only import certain groups
+```bash 
+php artisan translations:import --only-groups=admin/companies/user,frontend/login,home
+```
+
 Its also possible to ignore certain groups or locales
 
 ```bash
