@@ -31,7 +31,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "lasselehtinen\\MyPackage\\Test\\": "tests/"
+            "WeDesignIt\\LaravelTranslationsImport\\Test\\": "tests/"
         }
     },
     "extra": {
