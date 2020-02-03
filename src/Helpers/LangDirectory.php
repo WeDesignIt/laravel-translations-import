@@ -27,7 +27,7 @@ class LangDirectory
             $locale = array_shift($translationGroup);
 
             // implode it and remove the file extension so we get the full filename
-            $translatableFileName = str_replace('.php', '', implode($translationGroup, '/'));
+            $translatableFileName = str_replace('.php', '', implode('/', $translationGroup));
 
             // set it in the array
             $translatableFileNames[$translatableFileName][] = $locale;
