@@ -73,3 +73,8 @@ return [
     'translations' => 'text'
 ];
 ```
+
+
+ * Credit to [Barryvdh's translation-manager](https://github.com/barryvdh/laravel-translation-manager)
+ * Adapted for use with [Spatie's laravel-translation-loader](https://github.com/spatie/laravel-translation-loader)
+ 
