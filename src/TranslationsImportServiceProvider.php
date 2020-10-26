@@ -2,7 +2,7 @@
 
 namespace WeDesignIt\LaravelTranslationsImport;
 
-use WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsImportOld;
+use WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsImport;
 use Illuminate\Support\ServiceProvider;
 
 class TranslationsImportServiceProvider extends ServiceProvider
@@ -26,7 +26,7 @@ class TranslationsImportServiceProvider extends ServiceProvider
         // Register the commands
         if ($this->app->runningInConsole()) {
             $this->commands([
-                TranslationsImportOld::class
+                TranslationsImport::class
             ]);
         }
 

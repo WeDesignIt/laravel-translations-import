@@ -4,14 +4,21 @@ namespace WeDesignIt\LaravelTranslationsImport;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Symfony\Component\Finder\Finder;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Facades\DB;
+
+// TODO: Export, Clean and Reset (Not doing Find)
 
 class Manager
 {
     const JSON_GROUP = '_json';
+
+    const LOGGING = [
+        'info' => "\033[32m%s\033[0m",
+        'error' => "\033[41m%s\033[0m",
+    ];
 
     /** @var \Illuminate\Contracts\Foundation\Application */
     protected $app;
@@ -20,124 +27,184 @@ class Manager
     /** @var \Illuminate\Contracts\Events\Dispatcher */
     protected $events;
 
-    protected $config;
-
     protected $locales;
+
+    /** @var array $databaseData */
+    protected $databaseData;
+
+    /** @var array $options */
+    protected array $options;
 
     public function __construct(Application $app, Filesystem $files, Dispatcher $events)
     {
         $this->app = $app;
         $this->files = $files;
         $this->events = $events;
-        $this->config = $app['config']['translation-manager'];
         $this->locales = [];
+
+        $databaseData = [
+            'table' => config('translations-import.table'),
+            'groupColumn' => config('translations-import.group'),
+            'keyColumn' => config('translations-import.key'),
+            'translationColumn' => config('translations-import.translations'),
+        ];
+
+        if (array_search('', $databaseData) !== false) {
+            $error = 'Table and column values cannot be null/empty! Ensure table, group, key and translations are set in config/translations-import.php!';
+            error_log(sprintf(self::LOGGING['error'], $error));
+            die;
+        }
+
+        $this->databaseData = $databaseData;
     }
 
-    public function importTranslations($replace = false, $base = null, $import_group = false)
+    public function importTranslations($options = [])
     {
-        $counter = 0;
-        //allows for vendor lang files to be properly recorded through recursion.
-        $vendor = true;
-        if ($base == null) {
+        // Set options
+        $this->options = $options;
+
+        // Set the lang path
+        $base = config('translations-import.lang_path');
+        if (empty($base)) {
             $base = $this->app['path.lang'];
-            $vendor = false;
         }
 
-        foreach ($this->files->directories($base) as $langPath) {
+        $counter = 0;
+
+        // Loop through all directories in the base path
+        foreach ($this->files->directories($base) as $langPath)
+        {
+            // Get locale from path
             $locale = basename($langPath);
 
-            //import langfiles for each vendor
-            if ($locale == 'vendor') {
-                foreach ($this->files->directories($langPath) as $vendor) {
-                    $counter += $this->importTranslations($replace, $vendor);
-                }
+            // If the locale can be imported (and is not in the ignore-locales)
+            if ($this->localeCanBeImported($locale))
+            {
+                error_log(sprintf(self::LOGGING['info'], "Processing locale '{$locale}'"));
 
-                continue;
-            }
-            $vendorName = $this->files->name($this->files->dirname($langPath));
-            foreach ($this->files->allfiles($langPath) as $file) {
-                $info = pathinfo($file);
-                $group = $info['filename'];
-                if ($import_group) {
-                    if ($import_group !== $group) {
-                        continue;
+                // Loop through all files in the locale
+                foreach ($this->files->allfiles($langPath) as $file)
+                {
+                    $info = pathinfo($file);
+                    $group = $info['filename'];
+
+                    // Ensure separator consistency
+                    $subLangPath = str_replace($langPath.DIRECTORY_SEPARATOR, '', $info['dirname']);
+                    $subLangPath = str_replace(DIRECTORY_SEPARATOR, '/', $subLangPath);
+                    $langPath = str_replace(DIRECTORY_SEPARATOR, '/', $langPath);
+
+                    if ($subLangPath != $langPath) {
+                        $group = $subLangPath.'/'.$group;
                     }
-                }
 
-                if (in_array($group, $this->config['exclude_groups'])) {
-                    continue;
-                }
-                $subLangPath = str_replace($langPath.DIRECTORY_SEPARATOR, '', $info['dirname']);
-                $subLangPath = str_replace(DIRECTORY_SEPARATOR, '/', $subLangPath);
-                $langPath = str_replace(DIRECTORY_SEPARATOR, '/', $langPath);
-
-                if ($subLangPath != $langPath) {
-                    $group = $subLangPath.'/'.$group;
-                }
-
-                if (! $vendor) {
+                    // Load all translations in an associative array
                     $translations = \Lang::getLoader()->load($locale, $group);
-                } else {
-                    $translations = include $file;
-                    $group = 'vendor/'.$vendorName;
-                }
 
-                if ($translations && is_array($translations)) {
-                    foreach (Arr::dot($translations) as $key => $value) {
-                        $importedTranslation = $this->importTranslation($key, $value, $locale, $group, $replace);
-                        $counter += $importedTranslation ? 1 : 0;
+                    // Loop through all translations
+                    if ($translations && is_array($translations)) {
+                        // Convert nested array keys to dots ('auth' => [ 'login' => 'Login', ], to auth.login
+                        foreach (Arr::dot($translations) as $key => $value) {
+                            // Import the translation
+                            $importedTranslation = $this->importTranslation($key, $value, $locale, $group);
+                            // Add to the counter if the translation was successful
+                            $counter += $importedTranslation ? 1 : 0;
+                        }
                     }
                 }
+            }
+            else {
+                error_log(sprintf(self::LOGGING['info'], "Skipping locale '{$locale}'"));
             }
         }
 
+        // Loop through all JSON files
         foreach ($this->files->files($this->app['path.lang']) as $jsonTranslationFile) {
+            // Only continue if it's a valid .json
             if (strpos($jsonTranslationFile, '.json') === false) {
                 continue;
             }
             $locale = basename($jsonTranslationFile, '.json');
-            $group = self::JSON_GROUP;
-            $translations =
-                \Lang::getLoader()->load($locale, '*', '*'); // Retrieves JSON entries of the given locale only
-            if ($translations && is_array($translations)) {
-                foreach ($translations as $key => $value) {
-                    $importedTranslation = $this->importTranslation($key, $value, $locale, $group, $replace);
-                    $counter += $importedTranslation ? 1 : 0;
+            if ($this->localeCanBeImported($locale))
+            {
+                error_log(sprintf(self::LOGGING['info'], "Processing JSON locale '{$locale}'"));
+
+                $group = self::JSON_GROUP;
+                // Retrieves JSON entries of the given locale only
+                $translations = \Lang::getLoader()->load($locale, '*', '*');
+
+                // Import all translations from the JSON
+                if ($translations && is_array($translations)) {
+                    foreach ($translations as $key => $value) {
+                        $importedTranslation = $this->importTranslation($key, $value, $locale, $group);
+                        $counter += $importedTranslation ? 1 : 0;
+                    }
                 }
+            }
+            else {
+                error_log(sprintf(self::LOGGING['info'], "Skipping JSON locale '{$locale}'"));
             }
         }
 
         return $counter;
     }
 
-    public function importTranslation($key, $value, $locale, $group, $replace = false)
+    public function importTranslation($key, $value, $locale, $group)
     {
-
-        // process only string values
+        // Process only string values
         if (is_array($value)) {
             return false;
         }
-        $value = (string) $value;
-        $translation = Translation::firstOrNew([
-            'locale' => $locale,
-            'group'  => $group,
-            'key'    => $key,
-        ]);
 
-        // Check if the database is different then the files
-        $newStatus = $translation->value === $value ? Translation::STATUS_SAVED : Translation::STATUS_CHANGED;
-        if ($newStatus !== (int) $translation->status) {
-            $translation->status = $newStatus;
+        $table = $this->databaseData['table'];
+        $groupColumn = $this->databaseData['groupColumn'];
+        $keyColumn = $this->databaseData['keyColumn'];
+        $translationColumn = $this->databaseData['translationColumn'];
+        $overwrite = $this->options['overwrite'];
+
+
+        // See if a translation already exists
+        $translation = DB::table($table)
+            ->where($groupColumn, $group)
+            ->where($keyColumn, $key)
+            ->first();
+
+        // If a translation does exist
+        if (isset($translation))
+        {
+            $text = json_decode($translation->text, true);
+
+            // If the locale is not set, or if replace is true, or if the translation is empty
+            if (!isset($text[$locale]) || $overwrite || empty($text[$locale]))
+            {
+                // Update the translation
+                $text[$locale] = $value;
+                $translation->text = json_encode($text);
+                DB::table($table)
+                    ->where($groupColumn, $group)
+                    ->where($keyColumn, $key)
+                    ->update((array) $translation);
+
+                return true;
+            }
+        }
+        else
+        {
+            $text = [
+                $locale => $value,
+            ];
+
+            // Insert the translation into the database from the config
+            DB::table($table)
+                ->insert([
+                    $groupColumn => $group,
+                    $keyColumn => $key,
+                    $translationColumn => json_encode($text),
+                ]);
+
+            return true;
         }
 
-        // Only replace when empty, or explicitly told so
-        if ($replace || ! $translation->value) {
-            $translation->value = $value;
-        }
-
-        $translation->save();
-
-        return true;
+        return false;
     }
 
     public function exportTranslations($group = null, $json = false)
@@ -320,5 +387,29 @@ class Manager
         } else {
             return $this->config[$key];
         }
+    }
+
+
+
+
+    public function localeCanBeImported($locale)
+    {
+        return ! in_array($locale, explode(',', $this->options['ignore-locales']));
+    }
+
+    public function groupCanBeImported($group)
+    {
+//        $groupsToImport = explode(',', $this->option('only-groups'));
+        $groupsToIgnore = explode(',', $this->options['ignore-groups']);
+
+//        if (!is_null($this->option('only-groups')) && !in_array($group, $groupsToImport)) {
+//            return false;
+//        }
+
+        if (!is_null($this->options['ignore-groups']) && in_array($group, $groupsToIgnore)) {
+            return false;
+        }
+
+        return true;
     }
 }
