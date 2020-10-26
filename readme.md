@@ -1,5 +1,7 @@
 # Import your language files to the database
 
+WIP 
+
 This package provides you with a command to import the translation files to your database.
 It's particularly useful in the case you're using a package like Spatie's 
 [Laravel Translation Loader](https://github.com/spatie/laravel-translation-loader). 
