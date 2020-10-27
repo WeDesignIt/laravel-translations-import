@@ -20,9 +20,4 @@ return [
      * The column where the translation text itself should be stored
      */
     'translations' => 'text',
-
-    /**
-     * The path where your language files are stored. Leave empty to use the default Laravel lang folder
-     */
-    'lang_path' => '',
 ];

@@ -9,7 +9,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\DB;
 
-// TODO: Export, Clean and Reset (Not doing Find)
+// TODO: Export, Find, Clean and Reset
 
 class Manager
 {
@@ -35,6 +35,12 @@ class Manager
     /** @var array $options */
     protected array $options;
 
+    /**
+     * Manager constructor.
+     * @param Application $app
+     * @param Filesystem $files
+     * @param Dispatcher $events
+     */
     public function __construct(Application $app, Filesystem $files, Dispatcher $events)
     {
         $this->app = $app;
@@ -58,6 +64,12 @@ class Manager
         $this->databaseData = $databaseData;
     }
 
+    /**
+     * Process to import all translations.
+     * @param array $options
+     * @param string $vendorPath
+     * @return int|mixed
+     */
     public function importTranslations($options = [], $vendorPath = '')
     {
         $logInfo = '';
@@ -67,10 +79,7 @@ class Manager
         $this->options = $options;
 
         // Set the lang path
-        $base = config('translations-import.lang_path');
-        if (empty($base)) {
-            $base = $this->app['path.lang'];
-        }
+        $base = $this->app['path.lang'];
 
         // Change lang path if it's a vendor directory
         if (!empty($vendorPath)) {
@@ -112,7 +121,7 @@ class Manager
                     {
                         $info = pathinfo($file);
                         $group = $info['filename'];
-                        if ($this->groupCanBeImported($group))
+                        if ($this->groupCanBeProcessed($group))
                         {
                             // Ensure separator consistency
                             $subLangPath = str_replace($langPath.DIRECTORY_SEPARATOR, '', $info['dirname']);
@@ -165,7 +174,7 @@ class Manager
                 error_log(sprintf(self::LOGGING['info'], "Processing JSON locale '{$locale}'"));
 
                 $group = self::JSON_GROUP;
-                if ($this->groupCanBeImported($group))
+                if ($this->groupCanBeProcessed($group))
                 {
                     // Retrieves JSON entries of the given locale only
                     $translations = \Lang::getLoader()->load($locale, '*', '*');
@@ -187,6 +196,14 @@ class Manager
         return $counter;
     }
 
+    /**
+     * Process the import a singular translation.
+     * @param $key
+     * @param $value
+     * @param $locale
+     * @param $group
+     * @return bool
+     */
     public function importTranslation($key, $value, $locale, $group)
     {
         // Process only string values
@@ -208,14 +225,14 @@ class Manager
         // If a translation does exist
         if (isset($translation))
         {
-            $text = json_decode($translation->text, true);
+            $text = json_decode($translation->{$translationColumn}, true);
 
             // If the locale is not set, or if replace is true, or if the translation is empty
             if (!isset($text[$locale]) || $this->options['overwrite'] || empty($text[$locale]))
             {
                 // Update the translation
                 $text[$locale] = $value;
-                $translation->text = json_encode($text);
+                $translation->{$translationColumn} = json_encode($text);
                 DB::table($table)
                     ->where($groupColumn, $group)
                     ->where($keyColumn, $key)
@@ -244,103 +261,135 @@ class Manager
         return false;
     }
 
-    public function exportTranslations($group = null, $json = false)
+    /**
+     * Process to export all translations.
+     * @param $options
+     */
+    public function exportTranslations($options)
     {
-        $basePath = $this->app['path.lang'];
+        // Set options
+        $this->options = $options;
 
-        if (! is_null($group) && ! $json) {
-            if (! in_array($group, $this->config['exclude_groups'])) {
-                $vendor = false;
-                if ($group == '*') {
-                    return $this->exportAllTranslations();
-                } else {
-                    if (Str::startsWith($group, 'vendor')) {
-                        $vendor = true;
-                    }
-                }
+        // Get all groups
+        $groupObjects = DB::table($this->databaseData['table'])
+            ->select('group')
+            ->groupBy('group')
+            ->get();
 
-                $tree = $this->makeTree(Translation::ofTranslatedGroup($group)
-                    ->orderByGroupKeys(Arr::get($this->config, 'sort_keys', false))
-                    ->get());
+        foreach ($groupObjects as $groupObject)
+        {
+            $group = $groupObject->group;
 
-                foreach ($tree as $locale => $groups) {
-                    if (isset($groups[$group])) {
-                        $translations = $groups[$group];
-                        $path = $this->app['path.lang'];
-
-                        $locale_path = $locale.DIRECTORY_SEPARATOR.$group;
-                        if ($vendor) {
-                            $path = $basePath.'/'.$group.'/'.$locale;
-                            $locale_path = Str::after($group, '/');
-                        }
-                        $subfolders = explode(DIRECTORY_SEPARATOR, $locale_path);
-                        array_pop($subfolders);
-
-                        $subfolder_level = '';
-                        foreach ($subfolders as $subfolder) {
-                            $subfolder_level = $subfolder_level.$subfolder.DIRECTORY_SEPARATOR;
-
-                            $temp_path = rtrim($path.DIRECTORY_SEPARATOR.$subfolder_level, DIRECTORY_SEPARATOR);
-                            if (! is_dir($temp_path)) {
-                                mkdir($temp_path, 0777, true);
-                            }
-                        }
-
-                        $path = $path.DIRECTORY_SEPARATOR.$locale.DIRECTORY_SEPARATOR.$group.'.php';
-
-                        $output = "<?php\n\nreturn ".var_export($translations, true).';'.\PHP_EOL;
-                        $this->files->put($path, $output);
-                    }
-                }
-                Translation::ofTranslatedGroup($group)->update(['status' => Translation::STATUS_SAVED]);
+            $vendor = false;
+            $json = false;
+            if (Str::startsWith($group, 'vendor')) {
+                $vendor = true;
             }
-        }
-
-        if ($json) {
-            $tree = $this->makeTree(Translation::ofTranslatedGroup(self::JSON_GROUP)
-                ->orderByGroupKeys(Arr::get($this->config, 'sort_keys', false))
-                ->get(), true);
-
-            foreach ($tree as $locale => $groups) {
-                if (isset($groups[self::JSON_GROUP])) {
-                    $translations = $groups[self::JSON_GROUP];
-                    $path = $this->app['path.lang'].'/'.$locale.'.json';
-                    $output = json_encode($translations, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_UNICODE);
-                    $this->files->put($path, $output);
-                }
+            else if ($group == self::JSON_GROUP) {
+                $json = true;
             }
 
-            Translation::ofTranslatedGroup(self::JSON_GROUP)->update(['status' => Translation::STATUS_SAVED]);
-        }
+            // Process separately if it's a vendor group or JSON
+            if ($vendor && $this->options['allow-vendor'])
+            {
+                //$vendorGroup = explode
+            }
+            else if ($json && $this->options['allow-json'])
+            {
 
-        $this->events->dispatch(new TranslationsExportedEvent());
+            }
+            else if ($this->groupCanBeProcessed($group))
+            {
+                // Get all translations by group
+                $translations = DB::table($this->databaseData['table'])
+                    ->where($this->databaseData['groupColumn'], $group)
+                    ->get();
+
+                // Make a tree for this group
+                $tree = $this->makeTree($translations);
+
+                $this->exportTranslationGroup($tree, $group);
+            }
+        }
     }
 
-    public function exportAllTranslations()
+    public function exportTranslationGroup($tree, $group)
     {
-        $groups = Translation::whereNotNull('value')->selectDistinctGroup()->get('group');
+        // Loop through all groups
+        foreach ($tree as $locale => $groups)
+        {
+            // Only process if the current group is present
+            if (isset($groups[$group])) {
+                // Get the translations for this group
+                $translations = $groups[$group];
 
-        foreach ($groups as $group) {
-            if ($group->group == self::JSON_GROUP) {
-                $this->exportTranslations(null, true);
-            } else {
-                $this->exportTranslations($group->group);
+                // Set the lang path
+                $base = $this->app['path.lang'];
+
+                // Define the localePath, based of locale and group
+                $localePath = $locale.DIRECTORY_SEPARATOR.$group;
+
+                //                if ($vendor) {
+//                    $path = $basePath.'/'.$group.'/'.$locale;
+//                    $locale_path = Str::after($group, '/');
+//                }
+
+                // Get an array of each nesting
+                $subfolders = explode(DIRECTORY_SEPARATOR, $localePath);
+                // Remove the last item (which is the actual .php file)
+                array_pop($subfolders);
+
+                $subfolder_level = '';
+                // Loop through each subfolder to validate the full path
+                foreach ($subfolders as $subfolder) {
+                    // Define the path to the current subfolder
+                    $subfolder_level = $subfolder_level.$subfolder.DIRECTORY_SEPARATOR;
+                    // Build a path
+                    $temp_path = rtrim($base.DIRECTORY_SEPARATOR.$subfolder_level, DIRECTORY_SEPARATOR);
+
+                    // If the directory doesn't exist, ensure to make it
+                    if (! is_dir($temp_path)) {
+                        mkdir($temp_path, 0775, true);
+                    }
+                }
+                // The path is now fully validated
+
+                // Define the path of the
+                $filePath = $base.DIRECTORY_SEPARATOR.$localePath.'.php';
+
+                // Convert the translations into valid PHP code to be written to the file
+                $output = "<?php\n\nreturn ".var_export($translations, true).';'.\PHP_EOL;
+                // Write the translations to the file
+                $this->files->put($filePath, $output);
+                die;
             }
         }
-
-        $this->events->dispatch(new TranslationsExportedEvent());
     }
 
+    /**
+     * Build a nested tree array.
+     * @param $translations
+     * @param bool $json
+     * @return array
+     */
     protected function makeTree($translations, $json = false)
     {
         $array = [];
         foreach ($translations as $translation) {
             if ($json) {
+                /** WIP */
                 $this->jsonSet($array[$translation->locale][$translation->group], $translation->key,
                     $translation->value);
             } else {
-                Arr::set($array[$translation->locale][$translation->group], $translation->key,
-                    $translation->value);
+                // Retrieve the translation values
+                $text = json_decode($translation->{$this->databaseData['translationColumn']}, true);
+                // Loop through all locales
+                foreach ($text as $locale => $value)
+                {
+                    // Build a tree nested array, shaped as locale => groups => keys => value
+                    Arr::set($array[$locale][$translation->{$this->databaseData['groupColumn']}],
+                        $translation->{$this->databaseData['keyColumn']}, $value);
+                }
             }
         }
 
@@ -434,14 +483,14 @@ class Manager
         return ! in_array($locale, explode(',', $this->options['ignore-locales']));
     }
 
-    public function groupCanBeImported($group)
+    public function groupCanBeProcessed($group)
     {
-//        $groupsToImport = explode(',', $this->option('only-groups'));
+        $groupsToProcess = explode(',', $this->options['only-groups']);
         $groupsToIgnore = explode(',', $this->options['ignore-groups']);
 
-//        if (!is_null($this->option('only-groups')) && !in_array($group, $groupsToImport)) {
-//            return false;
-//        }
+        if (!is_null($this->options['only-groups']) && !in_array($group, $groupsToProcess)) {
+            return false;
+        }
 
         if (!is_null($this->options['ignore-groups']) && in_array($group, $groupsToIgnore)) {
             return false;
