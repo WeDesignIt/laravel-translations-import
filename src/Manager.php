@@ -162,36 +162,43 @@ class Manager
             }
         }
 
-        if ($this->options['allow-json'])
+        // Only process if we can process JSONs and we're not currently processing Vendor files
+        if ($this->options['allow-json'] && ! $vendor)
         {
             // Loop through all JSON files
-            foreach ($this->files->files($this->app['path.lang']) as $jsonTranslationFile) {
+            foreach ($this->files->files($this->app['path.lang']) as $jsonTranslationFile)
+            {
                 // Only continue if it's a valid .json
-                if (strpos($jsonTranslationFile, '.json') === false) {
-                    continue;
-                }
-                $locale = basename($jsonTranslationFile, '.json');
-                if ($this->localeCanBeImported($locale))
+                if (strpos($jsonTranslationFile, '.json') !== false)
                 {
-                    error_log(sprintf(self::LOGGING['info'], "Processing JSON locale '{$locale}'"));
-
-                    $group = self::JSON_GROUP;
-                    if ($this->groupCanBeProcessed($group))
+                    // Get locale from filename
+                    $locale = basename($jsonTranslationFile, '.json');
+                    // If it can be imported
+                    if ($this->localeCanBeImported($locale))
                     {
-                        // Retrieves JSON entries of the given locale only
-                        $translations = \Lang::getLoader()->load($locale, '*', '*');
+                        error_log(sprintf(self::LOGGING['info'], "Processing JSON locale '{$locale}'"));
 
-                        // Import all translations from the JSON
-                        if ($translations && is_array($translations)) {
-                            foreach ($translations as $key => $value) {
-                                $importedTranslation = $this->importTranslation($key, $value, $locale, $group);
-                                $counter += $importedTranslation ? 1 : 0;
+                        // Continue only if we can process the JSON group
+                        $group = self::JSON_GROUP;
+                        if ($this->groupCanBeProcessed($group))
+                        {
+                            // Retrieves JSON entries of the given locale only
+                            $translations = \Lang::getLoader()->load($locale, '*', '*');
+
+                            // Import all translations from the JSON
+                            if ($translations && is_array($translations))
+                            {
+                                foreach ($translations as $key => $value)
+                                {
+                                    $importedTranslation = $this->importTranslation($key, $value, $locale, $group);
+                                    $counter += $importedTranslation ? 1 : 0;
+                                }
                             }
                         }
                     }
-                }
-                else {
-                    error_log(sprintf(self::LOGGING['info'], "Skipping JSON locale '{$locale}'"));
+                    else {
+                        error_log(sprintf(self::LOGGING['info'], "Skipping JSON locale '{$locale}'"));
+                    }
                 }
             }
         }
