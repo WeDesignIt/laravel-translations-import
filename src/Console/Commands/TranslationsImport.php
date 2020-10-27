@@ -18,7 +18,8 @@ class TranslationsImport extends Command
         { --ignore-groups=              : Groups that should not be imported (split,by,commas), ex: --ignore-groups=routes,admin/non-editable-stuff }
         { --only-groups=                : Only import given groups (split,by,commas), ex: admin/employer,frontend/general/setting }
         { --o|overwrite                 : Whether the existing translations should be overwritten or not }
-        { --a|allow-vendor              : Whether to import vendor lang files or not }';
+        { --a|allow-vendor              : Whether to import vendor lang files or not }
+        { --j|allow-json                : Whether to import JSON lang files or not }';
 
 //  Potentially: Only supported locales? Config max locale length?
 
@@ -57,6 +58,7 @@ class TranslationsImport extends Command
         $options = [
             'overwrite' => $this->overwrite,
             'allow-vendor' => $this->option('allow-vendor'),
+            'allow-json' => $this->option('allow-json'),
             'ignore-locales' => $this->option('ignore-locales'),
             'ignore-groups' => $this->option('ignore-groups'),
             'only-groups' => $this->option('only-groups'),
