@@ -9,7 +9,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\DB;
 
-// TODO: Export, Find, Clean and Reset
+// TODO: Find, Clean and Reset
 
 class Manager
 {

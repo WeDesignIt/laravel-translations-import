@@ -50,7 +50,8 @@ class TranslationsExport extends Command
          Existing translations will be overwritten, and translations that have not been imported will be lost.
         EOT;
 
-//        if ($this->confirm($error)) {
+        if ($this->confirm($error))
+        {
             // Set options from the command context
             $options = [
                 'allow-vendor' => $this->option('allow-vendor'),
@@ -61,10 +62,9 @@ class TranslationsExport extends Command
             $this->manager->exportTranslations($options);
 
             $this->info('done (WIP)');
-//        }
-//        else
-//        {
-//            $this->warn('Exporting cancelled.');
-//        }
+        }
+        else {
+            $this->warn('Exporting cancelled.');
+        }
     }
 }
