@@ -5,9 +5,6 @@ namespace WeDesignIt\LaravelTranslationsImport\Console\Commands;
 use Illuminate\Console\Command;
 use WeDesignIt\LaravelTranslationsImport\Manager;
 
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputOption;
-
 class TranslationsExport extends Command
 {
     /**

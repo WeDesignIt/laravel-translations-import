@@ -293,19 +293,25 @@ class Manager
             }
 
             // Process separately if it's a vendor group or JSON
-            if ($vendor && $this->options['allow-vendor'])
+            if ($vendor)
             {
-                $fullGroup = $group;
-                // Get an array of each nesting
-                $subfolders = explode(DIRECTORY_SEPARATOR, $group);
-                // Set the actual group
-                $group = implode(DIRECTORY_SEPARATOR, array_slice($subfolders, 2));
+                if ($this->options['allow-vendor'])
+                {
+                    $vendorGroup = $group;
+                    // Get an array of each nesting
+                    $subfolders = explode(DIRECTORY_SEPARATOR, $group);
+                    // Set the actual group
+                    $group = implode(DIRECTORY_SEPARATOR, array_slice($subfolders, 2));
 
-                $this->processExportForGroup($group, $fullGroup);
+                    $this->processExportForGroup($group, $vendorGroup);
+                }
             }
-            else if ($json && $this->options['allow-json'])
+            else if ($json)
             {
-
+                if ($this->options['allow-json'])
+                {
+                    $this->processExportForGroup($group);
+                }
             }
             else
             {
@@ -314,76 +320,97 @@ class Manager
         }
     }
 
-    public function processExportForGroup($group, $fullGroup = null)
+    public function processExportForGroup($group, $vendorGroup = null)
     {
         if ($this->groupCanBeProcessed($group))
         {
             // Get all translations by group
             $translations = DB::table($this->databaseData['table'])
-                ->where($this->databaseData['groupColumn'], $fullGroup ?? $group)
+                ->where($this->databaseData['groupColumn'], $vendorGroup ?? $group)
                 ->get();
 
             // Make a tree for this group
             $tree = $this->makeTree($translations);
 
-            $this->exportTranslationGroup($tree, $group, $fullGroup);
+            $this->exportTranslationGroup($tree, $group, $vendorGroup);
         }
     }
 
 
-    public function exportTranslationGroup($tree, $group, $fullGroup = null)
+    public function exportTranslationGroup($tree, $group, $vendorGroup = null)
     {
-        // Loop through all groups
-        foreach ($tree as $locale => $groups)
+        $json = false;
+        if ($group == self::JSON_GROUP) {
+            $json = true;
+        }
+
+        if (! $json)
         {
-            // Only process if the current group is present
-            if (isset($groups[$fullGroup ?? $group])) {
-                // Get the translations for this group
-                $translations = $groups[$fullGroup ?? $group];
+            // Loop through all groups
+            foreach ($tree as $locale => $groups)
+            {
+                // Only process if the current group is present
+                if (isset($groups[$vendorGroup ?? $group])) {
+                    // Get the translations for this group
+                    $translations = $groups[$vendorGroup ?? $group];
 
-                // Set the lang path
-                $base = $this->app['path.lang'];
+                    // Set the lang path
+                    $base = $this->app['path.lang'];
 
-                // If the full group exists, and is a vendor group
-                if (isset($fullGroup) && Str::startsWith($fullGroup, 'vendor'))
-                {
-                    // Construct the proper path to the locale
-                    $vendorGroup = str_replace("/{$group}", '', $fullGroup);
+                    // If the full group exists, and is a vendor group
+                    if (isset($vendorGroup) && Str::startsWith($vendorGroup, 'vendor'))
+                    {
+                        // Construct the proper path to the locale
+                        $vendorGroup = str_replace("/{$group}", '', $vendorGroup);
 
-                    $localePath = $vendorGroup.DIRECTORY_SEPARATOR.$locale.DIRECTORY_SEPARATOR.$group;
-                }
-                else {
-                    // Define the localePath, based of locale and group
-                    $localePath = $locale.DIRECTORY_SEPARATOR.$group;
-                }
-
-                // Get an array of each nesting
-                $subfolders = explode(DIRECTORY_SEPARATOR, $localePath);
-                // Remove the last item (which is the actual .php file)
-                array_pop($subfolders);
-
-                $subfolder_level = '';
-                // Loop through each subfolder to validate the full path
-                foreach ($subfolders as $subfolder) {
-                    // Define the path to the current subfolder
-                    $subfolder_level = $subfolder_level.$subfolder.DIRECTORY_SEPARATOR;
-                    // Build a path
-                    $temp_path = rtrim($base.DIRECTORY_SEPARATOR.$subfolder_level, DIRECTORY_SEPARATOR);
-
-                    // If the directory doesn't exist, ensure to make it
-                    if (! is_dir($temp_path)) {
-                        mkdir($temp_path, 0775, true);
+                        $localePath = $vendorGroup.DIRECTORY_SEPARATOR.$locale.DIRECTORY_SEPARATOR.$group;
                     }
+                    else {
+                        // Define the localePath, based of locale and group
+                        $localePath = $locale.DIRECTORY_SEPARATOR.$group;
+                    }
+
+                    // Get an array of each nesting
+                    $subfolders = explode(DIRECTORY_SEPARATOR, $localePath);
+                    // Remove the last item (which is the actual .php file)
+                    array_pop($subfolders);
+
+                    $subfolder_level = '';
+                    // Loop through each subfolder to validate the full path
+                    foreach ($subfolders as $subfolder) {
+                        // Define the path to the current subfolder
+                        $subfolder_level = $subfolder_level.$subfolder.DIRECTORY_SEPARATOR;
+                        // Build a path
+                        $temp_path = rtrim($base.DIRECTORY_SEPARATOR.$subfolder_level, DIRECTORY_SEPARATOR);
+
+                        // If the directory doesn't exist, ensure to make it
+                        if (! is_dir($temp_path)) {
+                            mkdir($temp_path, 0775, true);
+                        }
+                    }
+                    // The path is now fully validated
+
+                    // Define the path of the
+                    $filePath = $base.DIRECTORY_SEPARATOR.$localePath.'.php';
+
+                    // Convert the translations into valid PHP code to be written to the file
+                    $output = "<?php\n\nreturn ".var_export($translations, true).';'.\PHP_EOL;
+                    // Write the translations to the file
+                    $this->files->put($filePath, $output);
                 }
-                // The path is now fully validated
-
-                // Define the path of the
-                $filePath = $base.DIRECTORY_SEPARATOR.$localePath.'.php';
-
-                // Convert the translations into valid PHP code to be written to the file
-                $output = "<?php\n\nreturn ".var_export($translations, true).';'.\PHP_EOL;
-                // Write the translations to the file
-                $this->files->put($filePath, $output);
+            }
+        }
+        else
+        {
+            foreach ($tree as $locale => $groups)
+            {
+                if (isset($groups[$group]))
+                {
+                    $translations = $groups[$group];
+                    $filePath = $this->app['path.lang'].'/'.$locale.'.json';
+                    $output = json_encode($translations, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_UNICODE);
+                    $this->files->put($filePath, $output);
+                }
             }
         }
     }
