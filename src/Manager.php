@@ -87,27 +87,29 @@ class Manager
                 {
                     $info = pathinfo($file);
                     $group = $info['filename'];
+                    if ($this->groupCanBeImported($group))
+                    {
+                        // Ensure separator consistency
+                        $subLangPath = str_replace($langPath.DIRECTORY_SEPARATOR, '', $info['dirname']);
+                        $subLangPath = str_replace(DIRECTORY_SEPARATOR, '/', $subLangPath);
+                        $langPath = str_replace(DIRECTORY_SEPARATOR, '/', $langPath);
 
-                    // Ensure separator consistency
-                    $subLangPath = str_replace($langPath.DIRECTORY_SEPARATOR, '', $info['dirname']);
-                    $subLangPath = str_replace(DIRECTORY_SEPARATOR, '/', $subLangPath);
-                    $langPath = str_replace(DIRECTORY_SEPARATOR, '/', $langPath);
+                        if ($subLangPath != $langPath) {
+                            $group = $subLangPath.'/'.$group;
+                        }
 
-                    if ($subLangPath != $langPath) {
-                        $group = $subLangPath.'/'.$group;
-                    }
+                        // Load all translations in an associative array
+                        $translations = \Lang::getLoader()->load($locale, $group);
 
-                    // Load all translations in an associative array
-                    $translations = \Lang::getLoader()->load($locale, $group);
-
-                    // Loop through all translations
-                    if ($translations && is_array($translations)) {
-                        // Convert nested array keys to dots ('auth' => [ 'login' => 'Login', ], to auth.login
-                        foreach (Arr::dot($translations) as $key => $value) {
-                            // Import the translation
-                            $importedTranslation = $this->importTranslation($key, $value, $locale, $group);
-                            // Add to the counter if the translation was successful
-                            $counter += $importedTranslation ? 1 : 0;
+                        // Loop through all translations
+                        if ($translations && is_array($translations)) {
+                            // Convert nested array keys to dots ('auth' => [ 'login' => 'Login', ], to auth.login
+                            foreach (Arr::dot($translations) as $key => $value) {
+                                // Import the translation
+                                $importedTranslation = $this->importTranslation($key, $value, $locale, $group);
+                                // Add to the counter if the translation was successful
+                                $counter += $importedTranslation ? 1 : 0;
+                            }
                         }
                     }
                 }
@@ -129,14 +131,17 @@ class Manager
                 error_log(sprintf(self::LOGGING['info'], "Processing JSON locale '{$locale}'"));
 
                 $group = self::JSON_GROUP;
-                // Retrieves JSON entries of the given locale only
-                $translations = \Lang::getLoader()->load($locale, '*', '*');
+                if ($this->groupCanBeImported($group))
+                {
+                    // Retrieves JSON entries of the given locale only
+                    $translations = \Lang::getLoader()->load($locale, '*', '*');
 
-                // Import all translations from the JSON
-                if ($translations && is_array($translations)) {
-                    foreach ($translations as $key => $value) {
-                        $importedTranslation = $this->importTranslation($key, $value, $locale, $group);
-                        $counter += $importedTranslation ? 1 : 0;
+                    // Import all translations from the JSON
+                    if ($translations && is_array($translations)) {
+                        foreach ($translations as $key => $value) {
+                            $importedTranslation = $this->importTranslation($key, $value, $locale, $group);
+                            $counter += $importedTranslation ? 1 : 0;
+                        }
                     }
                 }
             }
