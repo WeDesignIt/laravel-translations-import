@@ -9,7 +9,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\DB;
 
-// TODO: Find, Clean and Reset
+// TODO: Find? and Reset
 
 class Manager
 {
@@ -63,6 +63,12 @@ class Manager
 
         $this->databaseData = $databaseData;
     }
+
+    ###########################################
+    #
+    #   Import
+    #
+    ###########################################
 
     /**
      * Process to import all translations.
@@ -271,6 +277,12 @@ class Manager
         return false;
     }
 
+    ###########################################
+    #
+    #   Export
+    #
+    ###########################################
+
     /**
      * Process to export all translations.
      * @param $options
@@ -456,10 +468,50 @@ class Manager
         return $array;
     }
 
-    public function cleanTranslations()
+    ###########################################
+    #
+    #   Clean
+    #
+    ###########################################
+
+    /**
+     * Deletes all translations with empty values from the database.
+     * @return int
+     */
+    public function cleanTranslations() : int
     {
-        Translation::whereNull('value')->delete();
+        $translations = DB::table($this->databaseData['table'])
+            ->get();
+
+        $counter = 0;
+        $ids = [];
+        foreach ($translations as $translation)
+        {
+            $text = json_decode($translation->{$this->databaseData['translationColumn']}, true);
+
+            $total = count($text);
+            $empty = 0;
+            foreach ($text as $locale => $value)
+            {
+                if (empty($value)) {
+                    $empty++;
+                }
+            }
+            if ($total == $empty) {
+                $counter++;
+                $ids[] = $translation->id;
+            }
+        }
+
+        DB::table($this->databaseData['table'])
+            ->whereIn('id', $ids)
+            ->delete();
+        return $counter;
     }
+
+    /**
+     * WIP
+     */
 
     public function truncateTranslations()
     {
@@ -527,6 +579,11 @@ class Manager
 
 
 
+    ###########################################
+    #
+    #   Functions
+    #
+    ###########################################
 
     public function localeCanBeImported($locale)
     {
@@ -548,4 +605,8 @@ class Manager
 
         return true;
     }
+
+
+
+
 }
