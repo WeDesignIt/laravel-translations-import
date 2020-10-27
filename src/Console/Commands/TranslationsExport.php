@@ -61,7 +61,7 @@ class TranslationsExport extends Command
             ];
             $this->manager->exportTranslations($options);
 
-            $this->info('done (WIP)');
+            $this->info('All translations have been exported');
         }
         else {
             $this->warn('Exporting cancelled.');
