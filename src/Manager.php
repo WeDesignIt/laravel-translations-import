@@ -327,6 +327,11 @@ class Manager
         }
     }
 
+    /**
+     * Processes the export of each group.
+     * @param $group
+     * @param null $vendorGroup
+     */
     public function processExportForGroup($group, $vendorGroup = null)
     {
         if ($this->groupCanBeProcessed($group))
@@ -343,7 +348,12 @@ class Manager
         }
     }
 
-
+    /**
+     * Converts the tree into valid lang files.
+     * @param $tree
+     * @param $group
+     * @param null $vendorGroup
+     */
     public function exportTranslationGroup($tree, $group, $vendorGroup = null)
     {
         $json = false;
@@ -425,39 +435,23 @@ class Manager
     /**
      * Build a nested tree array.
      * @param $translations
-     * @param bool $json
      * @return array
      */
-    protected function makeTree($translations, $json = false)
+    protected function makeTree($translations)
     {
         $array = [];
-        foreach ($translations as $translation) {
-            if ($json) {
-                /** WIP */
-                $this->jsonSet($array[$translation->locale][$translation->group], $translation->key,
-                    $translation->value);
-            } else {
-                // Retrieve the translation values
-                $text = json_decode($translation->{$this->databaseData['translationColumn']}, true);
-                // Loop through all locales
-                foreach ($text as $locale => $value)
-                {
-                    // Build a tree nested array, shaped as locale => groups => keys => value
-                    Arr::set($array[$locale][$translation->{$this->databaseData['groupColumn']}],
-                        $translation->{$this->databaseData['keyColumn']}, $value);
-                }
+        foreach ($translations as $translation)
+        {
+            // Retrieve the translation values
+            $text = json_decode($translation->{$this->databaseData['translationColumn']}, true);
+            // Loop through all locales
+            foreach ($text as $locale => $value)
+            {
+                // Build a tree nested array, shaped as locale => groups => keys => value
+                Arr::set($array[$locale][$translation->{$this->databaseData['groupColumn']}],
+                    $translation->{$this->databaseData['keyColumn']}, $value);
             }
         }
-
-        return $array;
-    }
-
-    public function jsonSet(&$array, $key, $value)
-    {
-        if (is_null($key)) {
-            return $array = $value;
-        }
-        $array[$key] = $value;
 
         return $array;
     }
