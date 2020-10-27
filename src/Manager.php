@@ -292,47 +292,67 @@ class Manager
             // Process separately if it's a vendor group or JSON
             if ($vendor && $this->options['allow-vendor'])
             {
-                //$vendorGroup = explode
+                $fullGroup = $group;
+                // Get an array of each nesting
+                $subfolders = explode(DIRECTORY_SEPARATOR, $group);
+                // Set the actual group
+                $group = implode(DIRECTORY_SEPARATOR, array_slice($subfolders, 2));
+
+                $this->processExportForGroup($group, $fullGroup);
             }
             else if ($json && $this->options['allow-json'])
             {
 
             }
-            else if ($this->groupCanBeProcessed($group))
+            else
             {
-                // Get all translations by group
-                $translations = DB::table($this->databaseData['table'])
-                    ->where($this->databaseData['groupColumn'], $group)
-                    ->get();
-
-                // Make a tree for this group
-                $tree = $this->makeTree($translations);
-
-                $this->exportTranslationGroup($tree, $group);
+                 $this->processExportForGroup($group);
             }
         }
     }
 
-    public function exportTranslationGroup($tree, $group)
+    public function processExportForGroup($group, $fullGroup = null)
+    {
+        if ($this->groupCanBeProcessed($group))
+        {
+            // Get all translations by group
+            $translations = DB::table($this->databaseData['table'])
+                ->where($this->databaseData['groupColumn'], $fullGroup ?? $group)
+                ->get();
+
+            // Make a tree for this group
+            $tree = $this->makeTree($translations);
+
+            $this->exportTranslationGroup($tree, $group, $fullGroup);
+        }
+    }
+
+
+    public function exportTranslationGroup($tree, $group, $fullGroup = null)
     {
         // Loop through all groups
         foreach ($tree as $locale => $groups)
         {
             // Only process if the current group is present
-            if (isset($groups[$group])) {
+            if (isset($groups[$fullGroup ?? $group])) {
                 // Get the translations for this group
-                $translations = $groups[$group];
+                $translations = $groups[$fullGroup ?? $group];
 
                 // Set the lang path
                 $base = $this->app['path.lang'];
 
-                // Define the localePath, based of locale and group
-                $localePath = $locale.DIRECTORY_SEPARATOR.$group;
+                // If the full group exists, and is a vendor group
+                if (isset($fullGroup) && Str::startsWith($fullGroup, 'vendor'))
+                {
+                    // Construct the proper path to the locale
+                    $vendorGroup = str_replace("/{$group}", '', $fullGroup);
 
-                //                if ($vendor) {
-//                    $path = $basePath.'/'.$group.'/'.$locale;
-//                    $locale_path = Str::after($group, '/');
-//                }
+                    $localePath = $vendorGroup.DIRECTORY_SEPARATOR.$locale.DIRECTORY_SEPARATOR.$group;
+                }
+                else {
+                    // Define the localePath, based of locale and group
+                    $localePath = $locale.DIRECTORY_SEPARATOR.$group;
+                }
 
                 // Get an array of each nesting
                 $subfolders = explode(DIRECTORY_SEPARATOR, $localePath);
@@ -361,7 +381,6 @@ class Manager
                 $output = "<?php\n\nreturn ".var_export($translations, true).';'.\PHP_EOL;
                 // Write the translations to the file
                 $this->files->put($filePath, $output);
-                die;
             }
         }
     }
