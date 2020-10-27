@@ -12,11 +12,12 @@ class TranslationsImport extends Command
      *
      * @var string
      */
-    protected $signature = 'translations:import
+    protected $signature = "translations:import
 
         {--ignore-locales=                  : Locales that should be ignored during the importing process (split,by,commas), ex: --ignore-locales=fr,de }
         {--ignore-groups=                   : Groups that should not be imported (split,by,commas), ex: --ignore-groups=routes,admin/non-editable-stuff }
-        {--o|overwrite                      : Whether the existing translations should be overwritten or not }';
+        {--o|overwrite                      : Whether the existing translations should be overwritten or not }
+        {--a|allow-vendor                   : Whether to import vendor lang files or not }";
 
 //  Disabled for now
 //  {--only-groups=                     : Only import given groups, ex: admin/employer,frontend/general/setting}
@@ -57,6 +58,7 @@ class TranslationsImport extends Command
         // Set options from the command context
         $options = [
             'overwrite' => $this->overwrite,
+            'allow-vendor' => $this->option('allow-vendor'),
             'ignore-locales' => $this->option('ignore-locales'),
             'ignore-groups' => $this->option('ignore-groups'),
         ];

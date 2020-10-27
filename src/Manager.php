@@ -58,8 +58,11 @@ class Manager
         $this->databaseData = $databaseData;
     }
 
-    public function importTranslations($options = [])
+    public function importTranslations($options = [], $vendorPath = '')
     {
+        $logInfo = '';
+        $vendor = false;
+
         // Set options
         $this->options = $options;
 
@@ -67,6 +70,13 @@ class Manager
         $base = config('translations-import.lang_path');
         if (empty($base)) {
             $base = $this->app['path.lang'];
+        }
+
+        // Change lang path if it's a vendor directory
+        if (!empty($vendorPath)) {
+            $base = $vendorPath;
+            $logInfo = ' for vendor package ' . basename($base);
+            $vendor = true;
         }
 
         $counter = 0;
@@ -78,44 +88,68 @@ class Manager
             $locale = basename($langPath);
 
             // If the locale can be imported (and is not in the ignore-locales)
-            if ($this->localeCanBeImported($locale))
+            if ($this->localeCanBeImported($locale) || $locale == 'vendor')
             {
-                error_log(sprintf(self::LOGGING['info'], "Processing locale '{$locale}'"));
-
-                // Loop through all files in the locale
-                foreach ($this->files->allfiles($langPath) as $file)
+                if ($locale == 'vendor')
                 {
-                    $info = pathinfo($file);
-                    $group = $info['filename'];
-                    if ($this->groupCanBeImported($group))
+                    if ($this->options['allow-vendor'])
                     {
-                        // Ensure separator consistency
-                        $subLangPath = str_replace($langPath.DIRECTORY_SEPARATOR, '', $info['dirname']);
-                        $subLangPath = str_replace(DIRECTORY_SEPARATOR, '/', $subLangPath);
-                        $langPath = str_replace(DIRECTORY_SEPARATOR, '/', $langPath);
-
-                        if ($subLangPath != $langPath) {
-                            $group = $subLangPath.'/'.$group;
+                        // Pass all packages as new langpath and rerun this function
+                        foreach ($this->files->directories($langPath) as $vendorPath) {
+                            $counter += $this->importTranslations($this->options, $vendorPath);
                         }
+                    }
+                }
+                else
+                {
+                    error_log(sprintf(self::LOGGING['info'], "Processing locale '{$locale}'{$logInfo}"));
 
-                        // Load all translations in an associative array
-                        $translations = \Lang::getLoader()->load($locale, $group);
+                    // Get the directory route of the locale, then the name of the directory (which is the package)
+                    $packageName = $this->files->name($this->files->dirname($langPath));
 
-                        // Loop through all translations
-                        if ($translations && is_array($translations)) {
-                            // Convert nested array keys to dots ('auth' => [ 'login' => 'Login', ], to auth.login
-                            foreach (Arr::dot($translations) as $key => $value) {
-                                // Import the translation
-                                $importedTranslation = $this->importTranslation($key, $value, $locale, $group);
-                                // Add to the counter if the translation was successful
-                                $counter += $importedTranslation ? 1 : 0;
+                    // Loop through all files in the locale
+                    foreach ($this->files->allfiles($langPath) as $file)
+                    {
+                        $info = pathinfo($file);
+                        $group = $info['filename'];
+                        if ($this->groupCanBeImported($group))
+                        {
+                            // Ensure separator consistency
+                            $subLangPath = str_replace($langPath.DIRECTORY_SEPARATOR, '', $info['dirname']);
+                            $subLangPath = str_replace(DIRECTORY_SEPARATOR, '/', $subLangPath);
+                            $langPath = str_replace(DIRECTORY_SEPARATOR, '/', $langPath);
+
+                            if ($subLangPath != $langPath) {
+                                $group = $subLangPath.'/'.$group;
+                            }
+
+
+                            if ($vendor) {
+                                // We can't use the loader here, so we just grab the whole file
+                                $translations = include $file;
+                                $group = "vendor/{$packageName}/{$group}";
+                            }
+                            else {
+                                // Load all translations in an associative array
+                                $translations = \Lang::getLoader()->load($locale, $group);
+                            }
+
+                            // Loop through all translations
+                            if ($translations && is_array($translations)) {
+                                // Convert nested array keys to dots ('auth' => [ 'login' => 'Login', ], to auth.login
+                                foreach (Arr::dot($translations) as $key => $value) {
+                                    // Import the translation
+                                    $importedTranslation = $this->importTranslation($key, $value, $locale, $group);
+                                    // Add to the counter if the translation was successful
+                                    $counter += $importedTranslation ? 1 : 0;
+                                }
                             }
                         }
                     }
                 }
             }
             else {
-                error_log(sprintf(self::LOGGING['info'], "Skipping locale '{$locale}'"));
+                error_log(sprintf(self::LOGGING['info'], "Skipping locale '{$locale}'{$logInfo}"));
             }
         }
 
@@ -164,8 +198,6 @@ class Manager
         $groupColumn = $this->databaseData['groupColumn'];
         $keyColumn = $this->databaseData['keyColumn'];
         $translationColumn = $this->databaseData['translationColumn'];
-        $overwrite = $this->options['overwrite'];
-
 
         // See if a translation already exists
         $translation = DB::table($table)
@@ -179,7 +211,7 @@ class Manager
             $text = json_decode($translation->text, true);
 
             // If the locale is not set, or if replace is true, or if the translation is empty
-            if (!isset($text[$locale]) || $overwrite || empty($text[$locale]))
+            if (!isset($text[$locale]) || $this->options['overwrite'] || empty($text[$locale]))
             {
                 // Update the translation
                 $text[$locale] = $value;
