@@ -34,7 +34,7 @@ class Manager
     protected $databaseData;
 
     /** @var array $options */
-    protected array $options;
+    protected $options;
 
     /**
      * Manager constructor.

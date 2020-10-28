@@ -33,7 +33,7 @@ class TranslationsImport extends Command
     /** @var \WeDesignIt\LaravelTranslationsImport\Manager */
     protected $manager;
 
-    protected bool $overwrite = false;
+    protected $overwrite = false;
 
     /**
      * Create a new command instance.
