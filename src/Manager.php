@@ -28,8 +28,6 @@ class Manager
     /** @var \Illuminate\Contracts\Events\Dispatcher */
     protected $events;
 
-    protected $locales;
-
     /** @var array $databaseData */
     protected $databaseData;
 
@@ -47,7 +45,6 @@ class Manager
         $this->app = $app;
         $this->files = $files;
         $this->events = $events;
-        $this->locales = [];
 
         $databaseData = [
             'table' => config('translations-import.table'),
@@ -661,8 +658,7 @@ class Manager
                     if (Str::endsWith($group, '/*')) {
                         $group = str_replace('*', '%', $group);
                         $q->orWhere($this->databaseData['groupColumn'], 'like', $group);
-                    }
-                    else {
+                    } else {
                         $q->orWhere($this->databaseData['groupColumn'], $group);
                     }
                 }
@@ -701,13 +697,11 @@ class Manager
                     if (Str::startsWith($group, $groupToProcess)) {
                         $canProcess = true;
                     }
-                }
-                else if ($groupToProcess == $group) {
+                } else if ($groupToProcess == $group) {
                     $canProcess = true;
                 }
             }
-        }
-        else {
+        } else {
             $canProcess = true;
         }
 
@@ -721,8 +715,7 @@ class Manager
                     if (Str::startsWith($group, $groupToIgnore)) {
                         $ignore = true;
                     }
-                }
-                else if ($groupToIgnore == $group) {
+                } else if ($groupToIgnore == $group) {
                     $ignore = true;
                 }
             }
