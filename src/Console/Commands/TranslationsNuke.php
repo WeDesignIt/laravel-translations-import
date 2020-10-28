@@ -45,14 +45,10 @@ class TranslationsNuke extends Command
         $warning = 'Are you entirely sure you want to delete ' . (isset($options['only-groups']) ? 'translations for given groups?' : 'all translations?');
 
 
-        if ($this->confirm("\e[31m{$warning}\e[0m"))
-        {
-
+        if ($this->confirm("\e[31m{$warning}\e[0m")) {
             $this->manager->deleteTranslations($options);
-
             $this->info('Translations have been deleted.');
-        }
-        else {
+        } else {
             $this->warn('Deleting cancelled.');
         }
     }

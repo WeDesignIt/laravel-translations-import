@@ -8,9 +8,9 @@ use WeDesignIt\LaravelTranslationsImport\Manager;
 class TranslationsClean extends Command
 {
     /**
-    * The name and signature of the console command.
-    *
-    * @var string
+     * The name and signature of the console command.
+     *
+     * @var string
      */
     protected $signature = 'translations:clean';
 

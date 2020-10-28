@@ -39,8 +39,7 @@ class TranslationsFind extends Command
     {
         $path = $this->option('path');
         // Ensure the path is valid
-        if (isset($path) && !(file_exists($path) && is_dir($path)))
-        {
+        if (isset($path) && !(file_exists($path) && is_dir($path))) {
             $this->error('This is not a valid directoy path! Ensure the path exists.');
             die;
         }
