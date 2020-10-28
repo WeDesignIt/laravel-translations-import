@@ -6,6 +6,7 @@ use WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsClean;
 use WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsExport;
 use WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsFind;
 use WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsImport;
+use WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsNuke;
 use Illuminate\Support\ServiceProvider;
 
 class TranslationsImportServiceProvider extends ServiceProvider
@@ -32,7 +33,8 @@ class TranslationsImportServiceProvider extends ServiceProvider
                 TranslationsImport::class,
                 TranslationsExport::class,
                 TranslationsFind::class,
-                TranslationsClean::class
+                TranslationsClean::class,
+                TranslationsNuke::class
             ]);
         }
 

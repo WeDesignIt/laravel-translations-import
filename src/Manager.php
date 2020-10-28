@@ -10,8 +10,6 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Finder\Finder;
 
-// TODO: Find? and Reset
-
 class Manager
 {
     const JSON_GROUP = '_json';
@@ -20,6 +18,7 @@ class Manager
         'info' => "\033[32m%s\033[0m",
         'error' => "\033[41m%s\033[0m",
         'warn' =>  "\033[33m%s\033[0m",
+        'danger' => "\033[31m%s\033[0m",
     ];
 
     /** @var \Illuminate\Contracts\Foundation\Application */
@@ -694,6 +693,26 @@ class Manager
             ->whereIn('id', $ids)
             ->delete();
         return $counter;
+    }
+
+    ###########################################
+    #
+    #   Nuke
+    #
+    ###########################################
+
+    public function deleteTranslations($options = [])
+    {
+        $query = DB::table($this->databaseData['table']);
+
+        if (!empty($options['only-groups']))
+        {
+            $groups = explode(',', $options['only-groups']);
+
+            $query->whereIn($this->databaseData['groupColumn'], $groups);
+        }
+
+        $query->delete();
     }
 
     ###########################################
