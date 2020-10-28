@@ -1,7 +1,7 @@
 # Import your language files to the database (and much more)
 
-This package provides you with commands to deal with your translations 
-files and your database. Instead of manually adding translations to your database,
+This package provides you with commands to deal with your lang files and your
+database. Instead of manually adding translations to your database,
 this commandset gives you the tools needed to import and export translations,
 find unimported translations in your php/twig files, clean empty translations from 
 your database and to delete all translations in one go!
