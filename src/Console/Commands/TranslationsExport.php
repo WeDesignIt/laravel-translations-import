@@ -15,7 +15,7 @@ class TranslationsExport extends Command
     protected $signature = 'translations:export
 
         { --ignore-groups=              : Groups that should not be imported (split,by,commas), ex: --ignore-groups=routes,admin/non-editable-stuff }
-        { --only-groups=                : Only export given groups (split,by,commas), ex: admin/employer,frontend/general/setting }
+        { --only-groups=                : Only export given groups (split,by,commas), ex: admin/employer,frontend/* }
         { --a|allow-vendor              : Whether to export to vendor lang files or not }
         { --j|allow-json                : Whether to export to JSON lang files or not }';
 

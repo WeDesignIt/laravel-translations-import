@@ -16,7 +16,7 @@ class TranslationsImport extends Command
 
         { --ignore-locales=             : Locales that should be ignored during the importing process (split,by,commas), ex: --ignore-locales=fr,de }
         { --ignore-groups=              : Groups that should not be imported (split,by,commas), ex: --ignore-groups=routes,admin/non-editable-stuff }
-        { --only-groups=                : Only import given groups (split,by,commas), ex: admin/employer,frontend/general/setting }
+        { --only-groups=                : Only import given groups (split,by,commas), ex: admin/employer,frontend/* }
         { --o|overwrite                 : Whether the existing translations should be overwritten or not }
         { --a|allow-vendor              : Whether to import vendor lang files or not }
         { --j|allow-json                : Whether to import JSON lang files or not }';

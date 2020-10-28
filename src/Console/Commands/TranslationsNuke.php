@@ -14,7 +14,7 @@ class TranslationsNuke extends Command
      */
     protected $signature = 'translations:nuke
 
-        { --only-groups=                       : Only delete given groups (split,by,commas), ex: admin/employer,frontend/general/setting }';
+        { --only-groups=                       : Only delete given groups (split,by,commas), ex: admin/employer,frontend/* }';
 
     /**
      * The console command description.

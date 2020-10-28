@@ -121,17 +121,17 @@ class Manager
                     foreach ($this->files->allfiles($langPath) as $file) {
                         $info = pathinfo($file);
                         $group = $info['filename'];
+
+                        // Ensure separator consistency
+                        $subLangPath = str_replace($langPath . DIRECTORY_SEPARATOR, '', $info['dirname']);
+                        $subLangPath = str_replace(DIRECTORY_SEPARATOR, '/', $subLangPath);
+                        $langPath = str_replace(DIRECTORY_SEPARATOR, '/', $langPath);
+
+                        if ($subLangPath != $langPath) {
+                            $group = $subLangPath . '/' . $group;
+                        }
+
                         if ($this->groupCanBeProcessed($group)) {
-                            // Ensure separator consistency
-                            $subLangPath = str_replace($langPath . DIRECTORY_SEPARATOR, '', $info['dirname']);
-                            $subLangPath = str_replace(DIRECTORY_SEPARATOR, '/', $subLangPath);
-                            $langPath = str_replace(DIRECTORY_SEPARATOR, '/', $langPath);
-
-                            if ($subLangPath != $langPath) {
-                                $group = $subLangPath . '/' . $group;
-                            }
-
-
                             if ($vendor) {
                                 // We can't use the loader here, so we just grab the whole file
                                 $translations = include $file;
@@ -656,7 +656,17 @@ class Manager
         if (!empty($options['only-groups'])) {
             $groups = explode(',', $options['only-groups']);
 
-            $query->whereIn($this->databaseData['groupColumn'], $groups);
+            $query->where(function ($q) use ($groups) {
+                foreach ($groups as $group) {
+                    if (Str::endsWith($group, '/*')) {
+                        $group = str_replace('*', '%', $group);
+                        $q->orWhere($this->databaseData['groupColumn'], 'like', $group);
+                    }
+                    else {
+                        $q->orWhere($this->databaseData['groupColumn'], $group);
+                    }
+                }
+            });
         }
 
         $query->delete();
@@ -678,14 +688,46 @@ class Manager
         $groupsToProcess = explode(',', $this->options['only-groups']);
         $groupsToIgnore = explode(',', $this->options['ignore-groups']);
 
-        if (!is_null($this->options['only-groups']) && !in_array($group, $groupsToProcess)) {
-            return false;
+        $canProcess = false;
+        $ignore = false;
+
+        if (!is_null($this->options['only-groups'])) {
+            // Loop through all groups that were set in the options
+            foreach ($groupsToProcess as $groupToProcess) {
+                // If the option ends in a wildcard
+                if (Str::endsWith($groupToProcess, '/*')) {
+                    // Check if the group being checked starts with the group in the option
+                    $groupToProcess = substr($groupToProcess, 0, -2);
+                    if (Str::startsWith($group, $groupToProcess)) {
+                        $canProcess = true;
+                    }
+                }
+                else if ($groupToProcess == $group) {
+                    $canProcess = true;
+                }
+            }
+        }
+        else {
+            $canProcess = true;
         }
 
-        if (!is_null($this->options['ignore-groups']) && in_array($group, $groupsToIgnore)) {
-            return false;
+        if (!is_null($this->options['ignore-groups'])) {
+            // Loop through all groups that were set in the options
+            foreach ($groupsToIgnore as $groupToIgnore) {
+                // If the option ends in a wildcard
+                if (Str::endsWith($groupToIgnore, '/*')) {
+                    // Check if the group being checked starts with the group in the option
+                    $groupToIgnore = substr($groupToIgnore, 0, -2);
+                    if (Str::startsWith($group, $groupToIgnore)) {
+                        $ignore = true;
+                    }
+                }
+                else if ($groupToIgnore == $group) {
+                    $ignore = true;
+                }
+            }
         }
 
-        return true;
+        return ($canProcess && !$ignore);
     }
 }
