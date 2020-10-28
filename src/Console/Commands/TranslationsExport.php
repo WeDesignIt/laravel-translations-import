@@ -45,10 +45,7 @@ class TranslationsExport extends Command
      */
     public function handle()
     {
-        $error = <<<EOT
-        Are you really sure you want to export translations from the database to the lang files?
-         Existing translations will be overwritten, and translations that have not been imported will be lost.
-        EOT;
+        $error = "Are you really sure you want to export translations from the database to the lang files?\r\n Existing translations will be overwritten, and translations that have not been imported will be lost.";
 
         if ($this->confirm($error)) {
             // Set options from the command context
