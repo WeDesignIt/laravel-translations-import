@@ -19,6 +19,7 @@ class Manager
     const LOGGING = [
         'info' => "\033[32m%s\033[0m",
         'error' => "\033[41m%s\033[0m",
+        'warn' =>  "\033[33m%s\033[0m",
     ];
 
     /** @var \Illuminate\Contracts\Foundation\Application */
@@ -165,7 +166,7 @@ class Manager
                 }
             }
             else {
-                error_log(sprintf(self::LOGGING['info'], "Skipping locale '{$locale}'{$logInfo}"));
+                error_log(sprintf(self::LOGGING['warn'], "Skipping locale '{$locale}'{$logInfo}"));
             }
         }
 
@@ -204,7 +205,7 @@ class Manager
                         }
                     }
                     else {
-                        error_log(sprintf(self::LOGGING['info'], "Skipping JSON locale '{$locale}'"));
+                        error_log(sprintf(self::LOGGING['warn'], "Skipping JSON locale '{$locale}'"));
                     }
                 }
             }
@@ -447,7 +448,7 @@ class Manager
 
     /**
      * Build a nested tree array.
-     * @param $translations
+     * @param object $translations
      * @return array
      */
     protected function makeTree($translations)
@@ -475,7 +476,11 @@ class Manager
     #
     ###########################################
 
-
+    /**
+     * Finds all translations and imports them if they don't exist in the database.
+     * @param null $path
+     * @return int
+     */
     public function findTranslations($path = null)
     {
         $path = $path ?: base_path();
@@ -483,6 +488,7 @@ class Manager
         $stringKeys = [];
         $functions = config('translations-import.trans_functions');
 
+        // Match for all group based translations in the given functions (e.g. admin/
         $groupPattern =                             // See https://regex101.com/r/WEJqdL/12
             "[^\w|>]".                              // Must not have an alphanum or _ or > before real method
             '('.implode('|', $functions).')'.  // Must start with one of the functions
@@ -495,6 +501,7 @@ class Manager
             "[\'\"]".                               // Closing quote
             "[\),]";                                // Close parentheses or new parameter
 
+        // Match for all strings in the same functions, for JSON
         $stringPattern =                                    // See https://regex101.com/r/WEJqdL/6
             "[^\w]".                                        // Must not have an alphanum before real method
             '('.implode('|', $functions).')'.          // Must start with one of the functions
@@ -542,38 +549,110 @@ class Manager
                 }
             }
         }
-        /** WIP */
-        dd($stringKeys);
         // Remove duplicates
         $groupKeys = array_unique($groupKeys);
         $stringKeys = array_unique($stringKeys);
+        // As string matches also contain groups, we remove duplicates
+        $stringKeys = array_diff($stringKeys, $groupKeys);
+
+        $counter = 0;
 
         // Add the translations to the database, if not existing.
         foreach ($groupKeys as $key) {
             // Split the group and item
             list($group, $item) = explode('.', $key, 2);
-            $this->missingKey('', $group, $item);
+            $newTranslation = $this->missingKey($group, $item) ;
+            $counter += $newTranslation ? 1 : 0;
         }
 
         foreach ($stringKeys as $key) {
             $group = self::JSON_GROUP;
             $item = $key;
-            $this->missingKey('', $group, $item);
+            $newTranslation = $this->missingKey($group, $item) ;
+            $counter += $newTranslation ? 1 : 0;
         }
 
-        // Return the number of found translations
-        return count($groupKeys + $stringKeys);
+        // Return the number of processed translations
+        return $counter;
     }
 
-    public function missingKey($namespace, $group, $key)
+    /**
+     * Adds the translation to the database if it doesn't exist.
+     * @param $group
+     * @param $key
+     * @return bool
+     */
+    public function missingKey($group, $key) : bool
     {
-//        if (! in_array($group, $this->config['exclude_groups'])) {
-//            Translation::firstOrCreate([
-//                'locale' => $this->app['config']['app.locale'],
-//                'group'  => $group,
-//                'key'    => $key,
-//            ]);
-//        }
+        $translation = DB::table($this->databaseData['table'])
+            ->where($this->databaseData['groupColumn'], $group)
+            ->where($this->databaseData['keyColumn'], $key)
+            ->first();
+
+        // Only process if it doesn't exist
+        if (is_null($translation))
+        {
+            $translations = $this->getTranslationValues($group, $key);
+
+            DB::table($this->databaseData['table'])
+                ->insert([
+                    $this->databaseData['groupColumn'] => $group,
+                    $this->databaseData['keyColumn'] => $key,
+                    $this->databaseData['translationColumn'] => $translations
+                ]);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Gets all values for the found translation.
+     * @param $group
+     * @param $key
+     * @return string JSON
+     */
+    public function getTranslationValues($group, $key)
+    {
+        $base = $this->app['path.lang'];
+        $translations = [];
+
+        if ($group == self::JSON_GROUP)
+        {
+            // Loop through all JSON files
+            foreach ($this->files->files($this->app['path.lang']) as $jsonTranslationFile)
+            {
+                // Only continue if it's a valid .json
+                if (strpos($jsonTranslationFile, '.json') !== false)
+                {
+                    // Get locale from filename
+                    $locale = basename($jsonTranslationFile, '.json');
+                    // Get json data from the file
+                    $json = json_decode($jsonTranslationFile->getContents(), true);
+
+                    $translations[$locale] = $json[$key] ?? '';
+                }
+            }
+        }
+        else
+        {
+            // Loop through all locales
+            foreach ($this->files->directories($base) as $langPath)
+            {
+                // Get locale from path
+                $locale = basename($langPath);
+
+                if ($locale != 'vendor')
+                {
+                    // Get translations
+                    $translations = \Lang::getLoader()->load($locale, $group);
+
+                    $translations[$locale] = $translations[$key] ?? '';
+                }
+            }
+        }
+
+        return json_encode($translations);
     }
 
     ###########################################
@@ -617,88 +696,18 @@ class Manager
         return $counter;
     }
 
-    /**
-     * WIP
-     */
-
-    public function truncateTranslations()
-    {
-        Translation::truncate();
-    }
-
-    public function getLocales()
-    {
-        if (empty($this->locales)) {
-            $locales = array_merge([config('app.locale')],
-                Translation::groupBy('locale')->pluck('locale')->toArray());
-            foreach ($this->files->directories($this->app->langPath()) as $localeDir) {
-                if (($name = $this->files->name($localeDir)) != 'vendor') {
-                    $locales[] = $name;
-                }
-            }
-
-            $this->locales = array_unique($locales);
-            sort($this->locales);
-        }
-
-        return array_diff($this->locales, $this->ignoreLocales);
-    }
-
-    public function addLocale($locale)
-    {
-        $localeDir = $this->app->langPath().'/'.$locale;
-
-        $this->ignoreLocales = array_diff($this->ignoreLocales, [$locale]);
-        $this->saveIgnoredLocales();
-        $this->ignoreLocales = $this->getIgnoredLocales();
-
-        if (! $this->files->exists($localeDir) || ! $this->files->isDirectory($localeDir)) {
-            return $this->files->makeDirectory($localeDir);
-        }
-
-        return true;
-    }
-
-    protected function saveIgnoredLocales()
-    {
-        return $this->files->put($this->ignoreFilePath, json_encode($this->ignoreLocales));
-    }
-
-    public function removeLocale($locale)
-    {
-        if (! $locale) {
-            return false;
-        }
-        $this->ignoreLocales = array_merge($this->ignoreLocales, [$locale]);
-        $this->saveIgnoredLocales();
-        $this->ignoreLocales = $this->getIgnoredLocales();
-
-        Translation::where('locale', $locale)->delete();
-    }
-
-    public function getConfig($key = null)
-    {
-        if ($key == null) {
-            return $this->config;
-        } else {
-            return $this->config[$key];
-        }
-    }
-
-
-
     ###########################################
     #
     #   Functions
     #
     ###########################################
 
-    public function localeCanBeImported($locale)
+    public function localeCanBeImported($locale) : bool
     {
         return ! in_array($locale, explode(',', $this->options['ignore-locales']));
     }
 
-    public function groupCanBeProcessed($group)
+    public function groupCanBeProcessed($group) : bool
     {
         $groupsToProcess = explode(',', $this->options['only-groups']);
         $groupsToIgnore = explode(',', $this->options['ignore-groups']);
@@ -713,8 +722,4 @@ class Manager
 
         return true;
     }
-
-
-
-
 }

@@ -46,6 +46,6 @@ class TranslationsFind extends Command
         }
 
         $counter = $this->manager->findTranslations($path);
-        $this->info("A total of {$counter} translations have been found and imported.");
+        $this->info("A total of {$counter} unimported translations have been found and imported.");
     }
 }
