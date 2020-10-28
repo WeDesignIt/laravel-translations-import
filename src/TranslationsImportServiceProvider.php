@@ -4,6 +4,7 @@ namespace WeDesignIt\LaravelTranslationsImport;
 
 use WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsClean;
 use WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsExport;
+use WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsFind;
 use WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsImport;
 use Illuminate\Support\ServiceProvider;
 
@@ -30,6 +31,7 @@ class TranslationsImportServiceProvider extends ServiceProvider
             $this->commands([
                 TranslationsImport::class,
                 TranslationsExport::class,
+                TranslationsFind::class,
                 TranslationsClean::class
             ]);
         }

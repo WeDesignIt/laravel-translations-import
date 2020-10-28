@@ -66,6 +66,6 @@ class TranslationsImport extends Command
 
         // Let the manager do his job
         $counter = $this->manager->importTranslations($options);
-        $this->info("A total of {$counter} translations have been updated/created");
+        $this->info("A total of {$counter} translations have been updated/created.");
     }
 }
