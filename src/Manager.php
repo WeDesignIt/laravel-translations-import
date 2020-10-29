@@ -443,8 +443,9 @@ class Manager
         $functions = config('translations-import.trans_functions');
 
         // Match for all group based translations in the given functions (e.g. admin/
-        $groupPattern =                             // See https://regex101.com/r/WEJqdL/12
-            "[^\w|>]" .                              // Must not have an alphanum or _ or > before real method
+        $groupPattern =                             // See https://regex101.com/r/WEJqdL/15
+            "[^\w|]" .                              // Must not have an alphanum or _ before real method
+            "(?<!->)" .                             // Must not have an object operator (->) before the method
             '(' . implode('|', $functions) . ')' .  // Must start with one of the functions
             "\(" .                                   // Match opening parenthesis
             "[\'\"]" .                               // Match " or '
