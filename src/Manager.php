@@ -388,7 +388,7 @@ class Manager
                     $filePath = $base . DIRECTORY_SEPARATOR . $localePath . '.php';
 
                     // Convert the translations into valid PHP code to be written to the file
-                    $output = "<?php\n\nreturn " . var_export($translations, true) . ';' . \PHP_EOL;
+                    $output = "<?php\n\nreturn " . $this->fancyVarExport($translations) . ';' . \PHP_EOL;
                     // Write the translations to the file
                     $this->files->put($filePath, $output);
                 }
@@ -683,11 +683,21 @@ class Manager
     #
     ###########################################
 
+    /**
+     * Checks if a locale can be imported
+     * @param $locale
+     * @return bool
+     */
     public function localeCanBeImported($locale): bool
     {
         return !in_array($locale, explode(',', $this->options['ignore-locales']));
     }
 
+    /**
+     * Checks if a group can be processed
+     * @param $group
+     * @return bool
+     */
     public function groupCanBeProcessed($group): bool
     {
         $groupsToProcess = explode(',', $this->options['only-groups']);
@@ -731,5 +741,38 @@ class Manager
         }
 
         return ($canProcess && !$ignore);
+    }
+
+    /**
+     * Makes the default var_export fancy
+     * @param $expression
+     * @return string|string[]|null
+     */
+    function fancyVarExport($expression)
+    {
+        $export = var_export($expression, true);
+        // Patterns to replace parts
+        $transformPatterns = [
+            "/array \(/" => '[',                // Matches all array opening functions and brackets
+            "/(?<=[ ])*\)/" => ']',             // Matches all closing brackets
+            "/(?<==> )" . PHP_EOL . "/" => '',  // Matches the newlines before array opening brackets
+            "/(?<==>)[ ]*(?=\[)/" => ' ',       // Matches all white space between an arrow and an opening bracket
+        ];
+        $export = preg_replace(array_keys($transformPatterns), array_values($transformPatterns), $export);
+        // Patterns to double up on whitespace
+        $indentPatterns = [
+            "/(?<!=>)[ ]+(?='[\w])/",   // Matches all spaces before a translation
+            "/[ ]+(?=[\]])/",           // Matches all spaces before a closing bracket
+        ];
+
+        $export = preg_replace_callback(
+            array_values($indentPatterns),
+            function ($matches) {
+                return str_repeat($matches[0], 2);
+            },
+            $export
+        );
+
+        return $export;
     }
 }
