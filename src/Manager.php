@@ -443,7 +443,7 @@ class Manager
         $functions = config('translations-import.trans_functions');
 
         // Match for all group based translations in the given functions (e.g. admin/
-        $groupPattern =                             // See https://regex101.com/r/WEJqdL/15
+        $groupPattern =                             // See https://regex101.com/r/WEJqdL/19
             "[^\w|]" .                              // Must not have an alphanum or _ before real method
             "(?<!->)" .                             // Must not have an object operator (->) before the method
             '(' . implode('|', $functions) . ')' .  // Must start with one of the functions
@@ -451,8 +451,9 @@ class Manager
             "[\'\"]" .                               // Match " or '
             '(' .                                    // Start a new group to match:
             '[\/a-zA-Z0-9_-]+' .                     // Must start with group
-            "([.](?! )[^\1)]+)+" .                   // Be followed by one or more items/keys
-            ')' .                                    // Close group
+            "([.](?! )" .                            // Be followed by one or more items/keys
+            "(?(?=['\"])(?<=\\\\)['\"]|[^\1)])+" .   // Of which the next quotes are only allowed if preceded by a \
+            ")+)" .                                  // Close group
             "[\'\"]" .                               // Closing quote
             "[\),]";                                // Close parentheses or new parameter
 
