@@ -31,6 +31,9 @@ class Manager
     /** @var array $databaseData */
     protected $databaseData;
 
+    /** @var \WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsFind $command */
+    protected $command;
+
     /** @var array $options */
     protected $options;
 
@@ -432,12 +435,16 @@ class Manager
 
     /**
      * Finds all translations and imports them if they don't exist in the database.
-     * @param null $path
+     * @param \WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsFind $command
+     * @param array $options
      * @return int
      */
-    public function findTranslations($path = null)
+    public function findTranslations($command, $options = [])
     {
-        $path = $path ?: base_path();
+        $this->options = $options;
+        $this->command = $command;
+
+        $path = $this->options['path'] ?: base_path();
         $groupKeys = [];
         $stringKeys = [];
         $functions = config('translations-import.trans_functions');
@@ -546,7 +553,7 @@ class Manager
             ->first();
 
         // Only process if it doesn't exist
-        if (is_null($translation)) {
+        if (is_null($translation) && ($this->options['force-confirm'] || $this->command->confirm("Do you want to import group '{$group}' with key '{$key}'?", true))) {
             $translations = $this->getTranslationValues($group, $key);
 
             DB::table($this->databaseData['table'])

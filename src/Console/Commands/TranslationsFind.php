@@ -14,7 +14,8 @@ class TranslationsFind extends Command
      */
     protected $signature = 'translations:find
 
-        { --path=                       : A specific directory path to find translations in }';
+        { --path=                       : A specific directory path to find translations in }
+        { --c|force-confirm             : Whether to skip confirming found translations }';
 
     /**
      * The console command description.
@@ -43,8 +44,11 @@ class TranslationsFind extends Command
             $this->error('This is not a valid directoy path! Ensure the path exists.');
             die;
         }
-
-        $counter = $this->manager->findTranslations($path);
+        $options = [
+            'path' => $path,
+            'force-confirm' => $this->option('force-confirm'),
+        ];
+        $counter = $this->manager->findTranslations($this, $options);
         $this->info("A total of {$counter} unimported translations have been found and imported.");
     }
 }

@@ -73,6 +73,8 @@ The command offers 1 option:
  * `path`: By default, the find command starts in the root directory. Using this
  option, you can point the command to only search in a subdirectory. 
  <br>Example: `--path=resources/lang`.
+ * `force-confirm`: Option to enable automatically confirming all found translations.
+  Without this, you have to confirm each import manually. Shortcut `c`.
 
 
 ### The clean command
