@@ -108,9 +108,7 @@ class Manager
                     if ($this->options['allow-vendor']) {
                         // Pass all packages as new langpath and rerun this function
                         foreach ($this->files->directories($langPath) as $vendorPath) {
-                            if ($this->importTranslations($this->options, $vendorPath)) {
-                                $counter++;
-                            }
+                            $counter += $this->importTranslations($this->options, $vendorPath);
                         }
                     }
                 } else {
