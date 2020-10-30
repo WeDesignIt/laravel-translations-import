@@ -46,7 +46,7 @@ class TranslationsImportServiceProvider extends ServiceProvider
 
         // Register the manager
         $this->app->singleton('translation-manager', function ($app) {
-            return $app->make(Manager::class);
+            return $app->make('WeDesignIt\LaravelTranslationsImport\Manager');
         });
     }
 }
