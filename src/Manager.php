@@ -108,7 +108,9 @@ class Manager
                     if ($this->options['allow-vendor']) {
                         // Pass all packages as new langpath and rerun this function
                         foreach ($this->files->directories($langPath) as $vendorPath) {
-                            $counter += $this->importTranslations($this->options, $vendorPath);
+                            if ($this->importTranslations($this->options, $vendorPath)) {
+                                $counter++;
+                            }
                         }
                     }
                 } else {
@@ -146,9 +148,10 @@ class Manager
                                 // Convert nested array keys to dots ('auth' => [ 'login' => 'Login', ], to auth.login
                                 foreach (Arr::dot($translations) as $key => $value) {
                                     // Import the translation
-                                    $importedTranslation = $this->importTranslation($key, $value, $locale, $group);
                                     // Add to the counter if the translation was successful
-                                    $counter += $importedTranslation ? 1 : 0;
+                                    if ($this->importTranslation($key, $value, $locale, $group) === true) {
+                                        $counter++;
+                                    }
                                 }
                             }
                         }
@@ -180,8 +183,9 @@ class Manager
                             // Import all translations from the JSON
                             if ($translations && is_array($translations)) {
                                 foreach ($translations as $key => $value) {
-                                    $importedTranslation = $this->importTranslation($key, $value, $locale, $group);
-                                    $counter += $importedTranslation ? 1 : 0;
+                                    if ($this->importTranslation($key, $value, $locale, $group)) {
+                                        $counter++;
+                                    }
                                 }
                             }
                         }
@@ -222,14 +226,15 @@ class Manager
             ->first();
 
         // If a translation does exist
-        if (isset($translation)) {
+        if ($translation instanceof \stdClass) {
             $text = json_decode($translation->{$translationColumn}, true);
 
             // If the locale is not set, or if replace is true, or if the translation is empty
-            if (!isset($text[$locale]) || $this->options['overwrite'] || empty($text[$locale])) {
+            if ((!isset($text[$locale]) || $this->options['overwrite'] || empty($text[$locale])) && $value !== "") {
                 // Update the translation
                 $text[$locale] = $value;
                 $translation->{$translationColumn} = json_encode($text);
+
                 DB::table($table)
                     ->where($groupColumn, $group)
                     ->where($keyColumn, $key)
