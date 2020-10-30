@@ -18,6 +18,8 @@ translations to be used as default.
 Credit to [Barryvdh's Translation Manager](https://github.com/barryvdh/laravel-translation-manager) for 
 creating this package which we could build on.
 
+## Upgrading
+See [upgrading](upgrading.md) for details.
 
 ## Usage
 
