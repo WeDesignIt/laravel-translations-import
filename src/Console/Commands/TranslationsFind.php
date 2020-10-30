@@ -30,6 +30,7 @@ class TranslationsFind extends Command
     public function __construct(Manager $manager)
     {
         $this->manager = $manager;
+        $this->manager->command = $this;
         parent::__construct();
     }
 
@@ -48,7 +49,7 @@ class TranslationsFind extends Command
             'path' => $path,
             'force-confirm' => $this->option('force-confirm'),
         ];
-        $counter = $this->manager->findTranslations($this, $options);
+        $counter = $this->manager->findTranslations($options);
         $this->info("A total of {$counter} unimported translations have been found and imported.");
     }
 }

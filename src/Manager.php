@@ -31,8 +31,8 @@ class Manager
     /** @var array $databaseData */
     protected $databaseData;
 
-    /** @var \WeDesignIt\LaravelTranslationsImport\Console\Commands\TranslationsFind $command */
-    protected $command;
+    /** @var \Illuminate\Console\Command; */
+    public $command;
 
     /** @var array $options */
     protected $options;
@@ -439,10 +439,9 @@ class Manager
      * @param array $options
      * @return int
      */
-    public function findTranslations($command, $options = [])
+    public function findTranslations($options = [])
     {
         $this->options = $options;
-        $this->command = $command;
 
         $path = $this->options['path'] ?: base_path();
         $groupKeys = [];
