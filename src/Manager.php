@@ -133,13 +133,10 @@ class Manager
 
                         if ($this->groupCanBeProcessed($group)) {
                             if ($vendor) {
-                                // We can't use the loader here, so we just grab the whole file
-                                $translations = include $file;
+                                // Set group if vendor
                                 $group = "vendor/{$packageName}/{$group}";
-                            } else {
-                                // Load all translations in an associative array
-                                $translations = \Lang::getLoader()->load($locale, $group);
                             }
+                            $translations = include $file;
 
                             // Loop through all translations
                             if ($translations && is_array($translations)) {
@@ -176,7 +173,8 @@ class Manager
                         $group = self::JSON_GROUP;
                         if ($this->groupCanBeProcessed($group)) {
                             // Retrieves JSON entries of the given locale only
-                            $translations = \Lang::getLoader()->load($locale, '*', '*');
+                            // We can't use include here as the JSON file doesn't have a return statement
+                            $translations = json_decode($jsonTranslationFile->getContents(), true);
 
                             // Import all translations from the JSON
                             if ($translations && is_array($translations)) {
@@ -599,14 +597,36 @@ class Manager
             foreach ($this->files->directories($base) as $langPath) {
                 // Get locale from path
                 $locale = basename($langPath);
-
+                $filePath = $langPath . DIRECTORY_SEPARATOR . $group . '.php';
                 if ($locale != 'vendor') {
-                    // Get translations
-                    $translations = \Lang::getLoader()->load($locale, $group);
+                    // If the file doesn't exist, we can't get a translation for it either
+                    if (file_exists($filePath)) {
+                        // Get translations
+                        $translationsFromFile = include $filePath;
 
-                    $translations[$locale] = $translations[$key] ?? '';
+                        // Since a translation file can exist of nested arrays we have to loop
+                        $keyParts = explode('.', $key);
+                        // We can always get the first key
+                        $currentTrans = $translationsFromFile[$keyParts[0]] ?? '';
+                        // If the found translation is an array, and there's more than 1 key part,
+                        // we can continue, otherwise we already reached the translation
+                        $count = count($keyParts);
+                        if ($count > 1 && is_array($currentTrans)) {
+                            for ($i = 1; $i < $count; $i++) {
+                                $currentTrans = $currentTrans[$keyParts[$i]] ?? '';
+                            }
+                        }
+
+                        // Now we either have a translation or an empty value, which we can append
+                        $translations[$locale] = $currentTrans;
+                    }
                 }
             }
+        }
+
+        // If no translations were found, we just add an english tag
+        if ($translations == []) {
+            $translations['en'] = '';
         }
 
         return json_encode($translations);
