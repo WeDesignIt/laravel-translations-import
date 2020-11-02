@@ -71,6 +71,29 @@ php artisan translations:find
 This command will find all translations in your php/twig files, and import them
 if they do not exist in the database.
 
+*Keep in mind that this command should be handled with care, imagine we have this in a blade and trans file:*
+
+```blade
+@foreach(__('admin/employers.datatables.filter.statuses') as $value => $translation)
+    <option value="{{$value}}">{{$translation}}</option>
+@endforeach
+```
+
+```php
+// admin/employers.php
+'datatables' => [
+    'filter' => [
+        'statuses' => [
+            'active' => 'Actief',
+            'not-active' => 'Inactief',
+            'approved' => 'Goedgekeurd',
+            'declined' => 'Afgekeurd',
+        ],
+    ],
+];
+```
+*The command will find this translation and import it, it will encode the value of the 'statuses'.*
+
 The command offers 1 option:
  * `path`: By default, the find command starts in the root directory. Using this
  option, you can point the command to only search in a subdirectory. 
