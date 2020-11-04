@@ -776,7 +776,7 @@ class Manager
         // Patterns to replace parts
         $transformPatterns = [
             "/array \(/" => '[',                // Matches all array opening functions and brackets
-            "/(?<=[ ])*(?<![\w\W])\)/" => ']',  // Matches all closing brackets (can only be preceded by a space)
+            "/(?<![\S])\)/" => ']',             // Matches all closing brackets (can only be preceded by a space)
             "/(?<==> )" . PHP_EOL . "/" => '',  // Matches the newlines before array opening brackets
             "/(?<==>)[ ]*(?=\[)/" => ' ',       // Matches all white space between an arrow and an opening bracket
         ];
